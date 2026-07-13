@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flights — Live Status Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<div class="scan-line" aria-hidden="true"></div>
+
+<header class="site-header">
+  <div class="brand">
+    <span class="brand-mark">✈</span>
+    <div>
+      <h1>FLIGHTS<span class="brand-dot">.</span></h1>
+      <p class="brand-sub">Live status board</p>
+    </div>
+  </div>
+  <div id="providerBadges" class="provider-badges" aria-live="polite"></div>
+</header>
+
+<main>
+  <section class="search-panel">
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-mode="number" role="tab" aria-selected="true">By flight number</button>
+      <button class="tab" data-mode="route" role="tab" aria-selected="false">By route</button>
+    </div>
+
+    <form id="searchForm" class="search-form" autocomplete="off">
+      <div class="field-group" data-group="number">
+        <label for="flightNumber">Flight number</label>
+        <input id="flightNumber" name="flight_iata" type="text" placeholder="e.g. AA1004" maxlength="8">
+      </div>
+
+      <div class="field-group hidden" data-group="route">
+        <label for="depIata">From (IATA)</label>
+        <input id="depIata" name="dep_iata" type="text" placeholder="JFK" maxlength="4">
+      </div>
+      <div class="field-group hidden" data-group="route">
+        <label for="arrIata">To (IATA)</label>
+        <input id="arrIata" name="arr_iata" type="text" placeholder="LHR" maxlength="4">
+      </div>
+      <div class="field-group hidden" data-group="route">
+        <label for="statusFilter">Status</label>
+        <select id="statusFilter" name="flight_status">
+          <option value="">Any</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="active">Active</option>
+          <option value="landed">Landed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn-search">Track</button>
+    </form>
+  </section>
+
+  <section class="board-wrap">
+    <div class="board-head">
+      <span class="col col-flight">Flight</span>
+      <span class="col col-route">Route</span>
+      <span class="col col-time">Departure</span>
+      <span class="col col-time">Arrival</span>
+      <span class="col col-status">Status</span>
+    </div>
+
+    <div id="boardBody" class="board-body">
+      <p class="empty-state">Enter a flight number or a route above and hit <strong>Track</strong> to pull live data.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>Data via AirLabs &amp; Aviationstack, with automatic fallback between providers.</p>
+</footer>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+"""
+Basic test suite.
+
+Providers are monkeypatched so tests never make real network calls or burn
+API quota - this is the point of the FlightProvider abstraction: anything
+that talks to it can be swapped for a fake in tests.
+"""
+import pytest
+from fastapi.testclient import TestClient
+
+from app.main import app
+from app.models.schemas import Airline, AirportLeg, FlightRecord, FlightStatus
+from app.services import flight_service
+
+client = TestClient(app)
+
+
+def _fake_record(iata="AA1004", status=FlightStatus.ACTIVE):
+    return FlightRecord(
+        flight_number="1004",
+        flight_iata=iata,
+        status=status,
+        airline=Airline(name="American Airlines", iata="AA"),
+        departure=AirportLeg(iata="JFK", delay_minutes=13),
+        arrival=AirportLeg(iata="LHR", delay_minutes=0),
+        source="airlabs",
+    )
+
+
+def test_root_serves_html():
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers["content-type"]
+
+
+def test_health_reports_provider_config():
+    resp = client.get("/api/flights/health")
+    assert resp.status_code == 200
+    assert "providers" in resp.json()
+
+
+def test_search_requires_a_filter():
+    resp = client.get("/api/flights/search")
+    assert resp.status_code == 400
+
+
+def test_search_returns_normalized_results(monkeypatch):
+    async def fake_search(params):
+        return [_fake_record()], "airlabs", False
+
+    monkeypatch.setattr(flight_service, "search_flights", fake_search)
+    resp = client.get("/api/flights/search?dep_iata=JFK")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["source"] == "airlabs"
+    assert body["count"] == 1
+    assert body["results"][0]["flight_iata"] == "AA1004"
+
+
+def test_status_falls_back_when_primary_fails(monkeypatch):
+    async def fake_status(flight_iata):
+        return _fake_record(iata=flight_iata, status=FlightStatus.DELAYED), "aviationstack", True
+
+    monkeypatch.setattr(flight_service, "get_flight_status", fake_status)
+    resp = client.get("/api/flights/status/AA1004")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["fallback_used"] is True
+    assert body["source"] == "aviationstack"
+
+
+def test_status_404_when_flight_not_found(monkeypatch):
+    async def fake_status(flight_iata):
+        return None, "airlabs", False
+
+    monkeypatch.setattr(flight_service, "get_flight_status", fake_status)
+    resp = client.get("/api/flights/status/ZZ9999")
+    assert resp.status_code == 404
