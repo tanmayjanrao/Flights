@@ -24,12 +24,24 @@ class FlightStatus(str, Enum):
 
 
 class AirportLeg(BaseModel):
-    """One end (departure or arrival) of a flight."""
+    """
+    One end (departure or arrival) of a flight.
+
+    `scheduled` / `estimated` / `actual` are always UTC - that's the one
+    canonical value both providers can agree on. `timezone` is the IANA
+    zone name for *this specific airport* (e.g. "Asia/Kolkata" for a
+    departure from DEL, "Europe/London" for an arrival at LHR). A client
+    renders each leg by formatting the UTC instant in that leg's own
+    timezone - never the viewer's browser timezone - which is what makes
+    a DEL -> LHR flight correctly show "10:00 PM IST" for departure and
+    "6:30 AM BST" for arrival, in the same response.
+    """
     airport: str | None = None
     iata: str | None = None
     icao: str | None = None
     terminal: str | None = None
     gate: str | None = None
+    timezone: str | None = None
     scheduled: datetime | None = None
     estimated: datetime | None = None
     actual: datetime | None = None

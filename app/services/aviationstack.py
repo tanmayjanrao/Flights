@@ -30,6 +30,7 @@ from app.models.schemas import (
     FlightStatus,
     LivePosition,
 )
+from app.services.airport_tz import airport_timezone
 from app.services.base import (
     FlightProvider,
     FlightSearchParams,
@@ -49,13 +50,21 @@ _STATUS_MAP = {
 
 
 def _leg(raw: dict | None) -> AirportLeg:
+    """
+    Aviationstack's scheduled/estimated/actual are always UTC (the "+00:00"
+    suffix is real, not a display quirk) and it supplies its own IANA
+    timezone name per leg. We trust that name first and only fall back to
+    our own airport lookup if the provider ever omits it.
+    """
     raw = raw or {}
+    iata = raw.get("iata")
     return AirportLeg(
         airport=raw.get("airport"),
-        iata=raw.get("iata"),
+        iata=iata,
         icao=raw.get("icao"),
         terminal=raw.get("terminal"),
         gate=raw.get("gate"),
+        timezone=raw.get("timezone") or airport_timezone(iata),
         scheduled=raw.get("scheduled"),
         estimated=raw.get("estimated"),
         actual=raw.get("actual"),

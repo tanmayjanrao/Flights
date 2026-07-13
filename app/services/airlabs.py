@@ -23,10 +23,13 @@ Sample raw shape (trimmed) this maps from:
   }]
 }
 """
+from datetime import datetime, timezone
+
 import httpx
 
 from app.config import settings
 from app.models.schemas import Aircraft, Airline, AirportLeg, FlightRecord, FlightStatus
+from app.services.airport_tz import airport_timezone
 from app.services.base import (
     FlightProvider,
     FlightSearchParams,
@@ -46,28 +49,51 @@ _STATUS_MAP = {
 }
 
 
+def _parse_utc(value: str | None) -> datetime | None:
+    """
+    AirLabs's `*_utc` fields are naive strings like "2021-07-14 23:53" with
+    no offset marker - unlike Aviationstack, which includes "+00:00". If we
+    let pydantic parse this straight, it becomes a naive datetime with no
+    timezone attached, which is exactly the kind of ambiguity that caused
+    the original bug. Parse it ourselves and attach UTC explicitly.
+    """
+    if not value:
+        return None
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+        try:
+            return datetime.strptime(value, fmt).replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+    return None
+
+
 def _dep_leg(raw: dict) -> AirportLeg:
+    dep_iata = raw.get("dep_iata")
     return AirportLeg(
-        iata=raw.get("dep_iata"),
+        iata=dep_iata,
         icao=raw.get("dep_icao"),
         terminal=raw.get("dep_terminal"),
         gate=raw.get("dep_gate"),
-        scheduled=raw.get("dep_time_utc"),
-        estimated=raw.get("dep_estimated_utc"),
-        actual=raw.get("dep_actual_utc"),
+        # AirLabs gives no timezone name at all for /schedules - always resolved via lookup.
+        timezone=airport_timezone(dep_iata),
+        scheduled=_parse_utc(raw.get("dep_time_utc")),
+        estimated=_parse_utc(raw.get("dep_estimated_utc")),
+        actual=_parse_utc(raw.get("dep_actual_utc")),
         delay_minutes=raw.get("dep_delayed"),
     )
 
 
 def _arr_leg(raw: dict) -> AirportLeg:
+    arr_iata = raw.get("arr_iata")
     return AirportLeg(
-        iata=raw.get("arr_iata"),
+        iata=arr_iata,
         icao=raw.get("arr_icao"),
         terminal=raw.get("arr_terminal"),
         gate=raw.get("arr_gate"),
-        scheduled=raw.get("arr_time_utc"),
-        estimated=raw.get("arr_estimated_utc"),
-        actual=raw.get("arr_actual_utc"),
+        timezone=airport_timezone(arr_iata),
+        scheduled=_parse_utc(raw.get("arr_time_utc")),
+        estimated=_parse_utc(raw.get("arr_estimated_utc")),
+        actual=_parse_utc(raw.get("arr_actual_utc")),
         delay_minutes=raw.get("arr_delayed"),
     )
 

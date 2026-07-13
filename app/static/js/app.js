@@ -116,16 +116,23 @@ function rowTemplate(f, idx, source, fallbackUsed) {
 function timeCell(leg) {
   if (!leg) return `<span class="time-cell">—</span>`;
   const time = leg.actual || leg.estimated || leg.scheduled;
-  const label = formatTime(time);
+  // Always render in THIS leg's own airport timezone, never the viewer's browser
+  // timezone - a DEL departure shows IST, an LHR arrival shows BST, in the same response.
+  const label = formatTime(time, leg.timezone);
   const delay = leg.delay_minutes ? `<span class="delay">+${leg.delay_minutes}m</span>` : "";
   return `<span class="time-cell">${label}${delay}</span>`;
 }
 
-function formatTime(value) {
+function formatTime(value, tz) {
   if (!value) return "—";
   const d = new Date(value);
   if (isNaN(d.getTime())) return escapeHtml(String(value));
-  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const opts = { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" };
+  if (tz) {
+    opts.timeZone = tz;
+    opts.timeZoneName = "short"; // adds the "IST" / "BST" style abbreviation
+  }
+  return d.toLocaleString(undefined, opts);
 }
 
 function detailItem(label, value) {

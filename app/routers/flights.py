@@ -1,7 +1,10 @@
 from fastapi import APIRouter, HTTPException, Query
 
 from app.models.schemas import FlightSearchResponse, FlightStatusResponse, HealthResponse
-from app.services import AllProvidersFailedError, flight_service
+from app.services.flight_service import (
+    AllProvidersFailedError,
+    flight_service,
+)
 from app.services.base import FlightSearchParams
 
 router = APIRouter(prefix="/api/flights", tags=["flights"])
