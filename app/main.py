@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.routers import flights, pages
+from app.routers import flights, pages, qa
 
 app = FastAPI(
     title="Flights API",
@@ -23,4 +23,5 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(flights.router)
+app.include_router(qa.router)
 app.include_router(pages.router)

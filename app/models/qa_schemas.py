@@ -1,107 +1,98 @@
 """
-Schemas for the Airline Chat QA module.
+Schemas for the agent-chat QA tool.
 
-Mirrors models/schemas.py used by the flight tracker. Regardless of which LLM
-provider performs the evaluation (local Ollama today, another provider later),
-the rest of the application always works with these normalized models.
+Two shapes matter here:
+- `QALLMOutput` is what we ask the local Qwen model to produce. It is
+  deliberately small - no free-form reasoning fields, no arithmetic - so a
+  4B model on CPU has as little to generate (and get wrong) as possible.
+- `QAAnalysisResult` is what the API actually returns. `overall_score` is
+  computed in Python from the sub-scores rather than trusted from the LLM,
+  since asking a small model to also do the averaging correctly is an easy
+  way to get inconsistent numbers for free.
 """
-
 from enum import Enum
 
 from pydantic import BaseModel, Field
 
 
 class IssueCategory(str, Enum):
+    """
+    The full set of ticket categories this tool is meant to eventually cover.
+    Few-shot examples currently only exist for CANCELLATION, REBOOKING, and
+    BAGGAGE - the rest are here so the schema doesn't need to change when
+    more few-shot examples are added later.
+    """
+    CANCELLATION = "cancellation"
+    REBOOKING = "rebooking"
+    BAGGAGE = "baggage"
+    REFUND = "refund"
     SCHEDULE_CHANGE = "schedule_change"
     FORCE_MAJEURE = "force_majeure"
-    BAGGAGE = "baggage"
-    ANCILLARY = "ancillary"
-    REBOOKING = "rebooking"
-    CANCELLATION = "cancellation"
-    REFUND = "refund"
+    ANCILLARY_OR_PET = "ancillary_or_pet"
     IRATE_CUSTOMER = "irate_customer"
     MISSED_CONNECTION = "missed_connection"
     OTHER = "other"
 
 
-class Speaker(str, Enum):
-    AGENT = "agent"
-    CUSTOMER = "customer"
-
-
 class ChatMessage(BaseModel):
-    speaker: Speaker
+    speaker: str = Field(..., description="'agent' or 'customer'")
     text: str
-    timestamp: str | None = None
 
 
 class ChatTranscript(BaseModel):
-    chat_id: str
+    transcript_id: str
     agent_id: str | None = None
-    category: IssueCategory = IssueCategory.OTHER
     channel: str = "chat"
     messages: list[ChatMessage]
 
 
-class DimensionScore(BaseModel):
-    score: int = Field(ge=0, le=10)
-    comment: str
+class QAScores(BaseModel):
+    """Each dimension is scored 1 (poor) - 5 (excellent) by the LLM."""
+    empathy: int = Field(..., ge=1, le=5)
+    resolution_accuracy: int = Field(..., ge=1, le=5)
+    policy_compliance: int = Field(..., ge=1, le=5)
+    communication_clarity: int = Field(..., ge=1, le=5)
+    efficiency: int = Field(..., ge=1, le=5)
 
 
-class DimensionScores(BaseModel):
-    empathy_and_tone: DimensionScore
-    policy_and_compliance: DimensionScore
-    resolution_effectiveness: DimensionScore
-    communication_clarity: DimensionScore
-    de_escalation: DimensionScore | None = None
-
-
-class FlaggedQuote(BaseModel):
-    speaker: Speaker
-    quote: str
-    issue: str
-
-
-class DSATRisk(str, Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-
-
-class QAAnalysis(BaseModel):
-    chat_id: str
+class QALLMOutput(BaseModel):
+    """Exact JSON shape requested from the model via Ollama structured outputs."""
     category: IssueCategory
+    secondary_issues: list[str] = Field(default_factory=list, max_length=3)
+    scores: QAScores
+    resolved: bool
+    escalation_needed: bool
+    flags: list[str] = Field(default_factory=list, max_length=5)
+    strengths: list[str] = Field(default_factory=list, max_length=3)
+    improvements: list[str] = Field(default_factory=list, max_length=3)
+    summary: str = Field(..., max_length=300)
 
-    overall_score: int = Field(
-        ge=0,
-        le=100,
-        description="Overall quality score assigned by the LLM."
-    )
 
-    dimensions: DimensionScores
-
-    strengths: list[str] = []
-
-    areas_for_improvement: list[str] = []
-
-    flagged_quotes: list[FlaggedQuote] = []
-
-    compliance_flags: list[str] = []
-
-    dsat_risk: DSATRisk
-
-    better_agent_response: str
-
+class QAAnalysisResult(BaseModel):
+    """Public response: the LLM output plus a deterministically computed overall score."""
+    category: IssueCategory
+    secondary_issues: list[str]
+    scores: QAScores
+    overall_score: int = Field(..., ge=0, le=100)
+    resolved: bool
+    escalation_needed: bool
+    flags: list[str]
+    strengths: list[str]
+    improvements: list[str]
     summary: str
 
 
-class QAAnalysisResponse(BaseModel):
-    source: str
-    analysis: QAAnalysis
+class QAAnalyzeResponse(BaseModel):
+    transcript_id: str
+    model: str
+    thinking_disabled: bool
+    latency_ms: int
+    analysis: QAAnalysisResult
 
 
-class SampleChatSummary(BaseModel):
-    chat_id: str
-    category: IssueCategory
-    agent_id: str | None = None
-    preview: str
+class QAHealthResponse(BaseModel):
+    status: str
+    ollama_reachable: bool
+    model: str
+    model_available: bool
+    detail: str | None = None

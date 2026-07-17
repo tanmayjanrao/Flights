@@ -8,5 +8,5 @@ git push
 
 
 '''
-
+cd .\Flights\
 '''

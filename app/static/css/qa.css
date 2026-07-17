@@ -1,0 +1,112 @@
+/* ---- QA dashboard - extends tokens defined in style.css ---- */
+
+.qa-nav-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.85rem;
+  border: 1px solid var(--divider);
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.qa-nav-link:hover { color: var(--text); border-color: var(--blue); }
+
+.qa-main {
+  padding: 1.5rem clamp(1.25rem, 5vw, 4rem) 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.qa-picker-panel {
+  background: var(--panel);
+  border: 1px solid var(--divider);
+  border-radius: 10px;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+.qa-picker-panel label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.qa-picker-panel select {
+  background: var(--panel-raised);
+  color: var(--text);
+  border: 1px solid var(--divider);
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+  font-family: var(--font-body);
+  min-width: 220px;
+}
+.qa-hint {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  margin: 0;
+  flex-basis: 100%;
+}
+
+.qa-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .qa-columns { grid-template-columns: 1fr; }
+}
+
+.qa-panel {
+  background: var(--panel);
+  border: 1px solid var(--divider);
+  border-radius: 10px;
+  padding: 1.1rem 1.25rem;
+}
+.qa-panel h2 {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.9rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.transcript-view { display: flex; flex-direction: column; gap: 0.6rem; }
+.msg { padding: 0.55rem 0.8rem; border-radius: 8px; font-size: 0.88rem; max-width: 92%; }
+.msg-customer { background: var(--panel-raised); align-self: flex-start; }
+.msg-agent { background: rgba(91,141,239,0.12); align-self: flex-end; border: 1px solid rgba(91,141,239,0.2); }
+.msg .who { display: block; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.2rem; }
+
+.report-view { font-size: 0.9rem; }
+.qa-score-hero { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 1rem; }
+.qa-score-hero .num { font-family: var(--font-display); font-size: 2.4rem; font-weight: 700; }
+.qa-score-hero .num.good { color: var(--green); }
+.qa-score-hero .num.mid { color: var(--amber); }
+.qa-score-hero .num.bad { color: var(--red); }
+.qa-score-hero .cat { color: var(--text-muted); font-size: 0.85rem; }
+
+.qa-score-bars { display: grid; gap: 0.5rem; margin-bottom: 1.1rem; }
+.qa-score-bar { display: grid; grid-template-columns: 140px 1fr 1.5rem; align-items: center; gap: 0.5rem; font-size: 0.8rem; }
+.qa-score-bar .label { color: var(--text-muted); }
+.qa-score-bar .track { background: var(--panel-raised); border-radius: 6px; height: 8px; overflow: hidden; }
+.qa-score-bar .fill { height: 100%; background: var(--blue); }
+.qa-score-bar .fill.good { background: var(--green); }
+.qa-score-bar .fill.mid { background: var(--amber); }
+.qa-score-bar .fill.bad { background: var(--red); }
+
+.qa-flags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
+.qa-flag-pill {
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+  padding: 0.25rem 0.55rem; border-radius: 20px; background: rgba(255,92,92,0.15); color: var(--red);
+}
+
+.qa-list-block { margin-bottom: 1rem; }
+.qa-list-block h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 0 0 0.4rem; }
+.qa-list-block ul { margin: 0; padding-left: 1.1rem; }
+.qa-list-block li { margin-bottom: 0.3rem; }
+
+.qa-meta { color: var(--text-muted); font-size: 0.75rem; margin-top: 1rem; border-top: 1px dashed var(--divider); padding-top: 0.7rem; }

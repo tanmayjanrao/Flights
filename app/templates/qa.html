@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flights Agent QA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+<link rel="stylesheet" href="/static/css/qa.css">
+</head>
+<body>
+
+<div class="scan-line" aria-hidden="true"></div>
+
+<header class="site-header">
+  <div class="brand">
+    <span class="brand-mark">✈</span>
+    <div>
+      <h1>FLIGHTS<span class="brand-dot">.</span></h1>
+      <p class="brand-sub">Agent QA chat review</p>
+    </div>
+  </div>
+  <div style="display:flex; align-items:center; gap:0.9rem;">
+    <span id="ollamaBadge" class="provider-pill off">ollama ○</span>
+    <a href="/" class="qa-nav-link">← Flight board</a>
+  </div>
+</header>
+
+<main class="qa-main">
+  <section class="qa-picker-panel">
+    <label for="sampleSelect">Sample transcript</label>
+    <select id="sampleSelect"></select>
+    <button id="analyzeBtn" class="btn-search" type="button">Analyze chat</button>
+    <p class="qa-hint">Runs locally on Ollama (qwen3:4b, CPU) first analysis can take a while to warm up.</p>
+  </section>
+
+  <section class="qa-columns">
+    <div class="qa-panel qa-transcript-panel">
+      <h2>Transcript</h2>
+      <div id="transcriptView" class="transcript-view">
+        <p class="empty-state">Pick a sample above and hit Analyze.</p>
+      </div>
+    </div>
+
+    <div class="qa-panel qa-report-panel">
+      <h2>QA Report</h2>
+      <div id="reportView" class="report-view">
+        <p class="empty-state">No analysis yet.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>Chat QA scoring runs entirely locally via Ollama no transcript data leaves this machine.</p>
+</footer>
+
+<script src="/static/js/qa.js"></script>
+</body>
+</html>

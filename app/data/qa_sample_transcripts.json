@@ -1,0 +1,62 @@
+[
+  {
+    "transcript_id": "SAMPLE-CXL-01",
+    "agent_id": "agent_priya",
+    "channel": "chat",
+    "messages": [
+      {"speaker": "customer", "text": "Hi, I need to cancel one of my upcoming flights."},
+      {"speaker": "agent", "text": "Thank you for contacting Skyline Travels, this is Priya - I'm happy to help you with that. I completely understand plans can change. Could you confirm which flight you'd like to cancel - do you have the booking reference or flight number handy?"},
+      {"speaker": "customer", "text": "It's 6E204 to Goa on the 24th, booking ref SK7841."},
+      {"speaker": "agent", "text": "Got it - 6E204 to Goa on the 24th under SK7841. Just to confirm before I go ahead, is that the correct flight, and would you like a full cancellation or should I first check your refund eligibility?"},
+      {"speaker": "customer", "text": "Full cancellation please, I won't be able to travel at all."},
+      {"speaker": "agent", "text": "Understood, I'm sorry your plans changed. Let me pull up the fare rules on this ticket to check your refund and credit options - could I place you on a short hold, about 5 minutes?"},
+      {"speaker": "customer", "text": "Sure, no problem."},
+      {"speaker": "agent", "text": "Thanks so much for your patience. I've confirmed this fare is partially refundable - you're eligible for either a refund of the base fare minus a cancellation fee, or a full-value travel credit valid for 12 months. Which would you prefer?"},
+      {"speaker": "customer", "text": "I'll take the travel credit, no immediate refund needed."},
+      {"speaker": "agent", "text": "Perfect choice - give me about 3 more minutes to process that and generate your credit note."},
+      {"speaker": "agent", "text": "Just checking in - are you still there?"},
+      {"speaker": "customer", "text": "Yes sorry, still here!"},
+      {"speaker": "agent", "text": "No worries at all! Flight 6E204 has now been cancelled and a travel credit of ₹8,200 has been issued to your account, valid for 12 months - reference CR-88213. You'll get a confirmation email shortly."},
+      {"speaker": "customer", "text": "Perfect, thank you."},
+      {"speaker": "agent", "text": "Is there anything else I can help you with today?"},
+      {"speaker": "customer", "text": "No, that's everything."},
+      {"speaker": "agent", "text": "Wonderful. Thank you so much for contacting Skyline Travels, have a great day, and we hope to fly with you again soon!"}
+    ]
+  },
+  {
+    "transcript_id": "SAMPLE-RBK-01",
+    "agent_id": "agent_daniel",
+    "channel": "chat",
+    "messages": [
+      {"speaker": "customer", "text": "Hi, I need to rebook my flight, my original one got moved to a bad time."},
+      {"speaker": "agent", "text": "Thank you for reaching out to Skyline Travels, this is Daniel - I'm sorry the schedule change didn't work out for you, that's frustrating when it disrupts your plans. I can definitely help find a better option. Could you confirm your origin and destination, and which flight you're currently booked on?"},
+      {"speaker": "customer", "text": "Flying from Mumbai to Bangalore, currently booked on 6E123 on the 5th."},
+      {"speaker": "agent", "text": "Got it - Mumbai to Bangalore, currently on 6E123 on the 5th. Do you have a preferred date or time you'd like to fly instead?"},
+      {"speaker": "customer", "text": "Anything before 10am on the 5th or 6th would work."},
+      {"speaker": "agent", "text": "Perfect, let me check availability for those windows - could I place you on hold for about 5 minutes while I look?"},
+      {"speaker": "customer", "text": "Sure, go ahead."},
+      {"speaker": "agent", "text": "Thanks for waiting. I found two options: 6E110 on the 5th at 6:40am, or 6E118 on the 6th at 8:15am, both with seats available. I'll need about 2 more minutes to check whether there's any fare difference on either - is that alright?"},
+      {"speaker": "agent", "text": "Just checking in - are you still there?"},
+      {"speaker": "agent", "text": "I haven't heard back, so I'll go ahead and close this chat for now so I'm not holding the line unnecessarily. Once you're ready, please reach back out referencing this chat and we can pick up right where we left off with those two flight options. Have a great day, and thank you for contacting Skyline Travels!"}
+    ]
+  },
+  {
+    "transcript_id": "SAMPLE-BAG-01",
+    "agent_id": "agent_priya",
+    "channel": "chat",
+    "messages": [
+      {"speaker": "customer", "text": "Hi, I'd like to add extra baggage allowance to my upcoming flight."},
+      {"speaker": "agent", "text": "Thank you for contacting Skyline Travels, this is Priya - happy to help with that! Could you tell me which flight this is for, and how many extra kilograms you'd like to add?"},
+      {"speaker": "customer", "text": "It's for AF1380 to Paris on the 12th, I want to add 10kg."},
+      {"speaker": "agent", "text": "Great - AF1380 to Paris on the 12th, adding 10kg of extra allowance. Let me check the current pricing for that on your fare type - could I place you on a brief hold, around 4 minutes?"},
+      {"speaker": "customer", "text": "Sure, go ahead."},
+      {"speaker": "agent", "text": "Thanks for waiting. Adding 10kg on this fare would normally be a straightforward charge, but I'm seeing a system restriction on this specific booking that needs manual approval from our baggage services team. I've forwarded your request to them - I don't have an exact timeframe I can promise, but they typically respond within a business day or two."},
+      {"speaker": "customer", "text": "Ok, will I get a confirmation?"},
+      {"speaker": "agent", "text": "Yes, you'll receive an email once it's processed, and I've logged your request under reference BAG-REQ-6620 so you can follow up anytime referencing that number."},
+      {"speaker": "customer", "text": "Great, thank you."},
+      {"speaker": "agent", "text": "Is there anything else I can help you with today?"},
+      {"speaker": "customer", "text": "No, that's all."},
+      {"speaker": "agent", "text": "Perfect. Thank you so much for contacting Skyline Travels, have a wonderful day!"}
+    ]
+  }
+]
