@@ -92,8 +92,63 @@ function renderReport(data) {
     <p>${escapeHtml(a.summary)}</p>
     ${strengths}
     ${improvements}
+    ${renderHoldTimeCompliance(a.hold_time_compliance)}
+    ${renderIdleProtocolCompliance(a.idle_protocol_compliance)}
     <p class="qa-meta">${data.model} · thinking ${data.thinking_disabled ? "off" : "on"} · ${data.latency_ms}ms</p>
   `;
+}
+
+function fmtSecs(s) {
+  if (s === null || s === undefined) return "—";
+  const m = Math.floor(s / 60);
+  const rem = Math.round(s % 60);
+  return m > 0 ? `${m}m ${rem}s` : `${rem}s`;
+}
+
+// Both of these are computed in plain Python (timing_checks.py), not by the
+// LLM - see the note in that module for why.
+function renderHoldTimeCompliance(hold) {
+  if (!hold.evaluated) {
+    return `<div class="qa-timing-block"><h3>Hold-time compliance</h3><p class="qa-timing-note">${escapeHtml(hold.note || "Not evaluated.")}</p></div>`;
+  }
+  if (!hold.holds.length) {
+    return `<div class="qa-timing-block"><h3>Hold-time compliance</h3><p class="qa-timing-note">${escapeHtml(hold.note || "No hold/wait duration was stated.")}</p></div>`;
+  }
+  const rows = hold.holds
+    .map((h) => {
+      const pillCls = h.exceeded ? "warn" : "ok";
+      const pillText = h.exceeded ? `+${fmtSecs(h.overage_seconds)} over` : "within stated time";
+      return `<div class="qa-timing-row">
+        <span class="qa-timing-pill ${pillCls}">${pillText}</span>
+        <span>stated ${fmtSecs(h.stated_seconds)}, actual ${fmtSecs(h.actual_seconds)}</span>
+      </div>`;
+    })
+    .join("");
+  return `<div class="qa-timing-block"><h3>Hold-time compliance <span class="qa-soft-flag">soft flag</span></h3>${rows}</div>`;
+}
+
+function renderIdleProtocolCompliance(idle) {
+  if (!idle.evaluated) {
+    return `<div class="qa-timing-block"><h3>Idle-protocol adherence</h3><p class="qa-timing-note">${escapeHtml(idle.note || "Not evaluated.")}</p></div>`;
+  }
+  if (!idle.windows.length) {
+    return `<div class="qa-timing-block"><h3>Idle-protocol adherence</h3><p class="qa-timing-note">${escapeHtml(idle.note || "No idle window long enough to check.")}</p></div>`;
+  }
+  const rows = idle.windows
+    .map((w) => {
+      const pillCls = w.violations.length ? "warn" : "ok";
+      const pillText = w.violations.length ? w.violations.join(", ").replace(/_/g, " ") : "on protocol";
+      const checkinPart = w.first_checkin_seconds !== null && w.first_checkin_seconds !== undefined
+        ? `check-in at ${fmtSecs(w.first_checkin_seconds)}`
+        : "no check-in";
+      const finalPart = w.final_notice_sent ? `, closed at ${fmtSecs(w.final_notice_seconds)}` : "";
+      return `<div class="qa-timing-row">
+        <span class="qa-timing-pill ${pillCls}">${pillText}</span>
+        <span>idle ${fmtSecs(w.idle_duration_seconds)} - ${checkinPart}${finalPart}</span>
+      </div>`;
+    })
+    .join("");
+  return `<div class="qa-timing-block"><h3>Idle-protocol adherence</h3>${rows}</div>`;
 }
 
 analyzeBtn.addEventListener("click", async () => {

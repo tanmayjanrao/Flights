@@ -37,6 +37,15 @@ class IssueCategory(str, Enum):
 class ChatMessage(BaseModel):
     speaker: str = Field(..., description="'agent' or 'customer'")
     text: str
+    elapsed_seconds: float | None = Field(
+        default=None,
+        description=(
+            "Seconds since the start of the chat when this message was sent. "
+            "Optional - only used by the deterministic (non-LLM) hold-time and "
+            "idle-protocol checks. If any message in a transcript is missing "
+            "this, both checks report evaluated=False rather than guessing."
+        ),
+    )
 
 
 class ChatTranscript(BaseModel):
@@ -44,6 +53,60 @@ class ChatTranscript(BaseModel):
     agent_id: str | None = None
     channel: str = "chat"
     messages: list[ChatMessage]
+
+
+class HoldCheck(BaseModel):
+    """One instance of the agent stating a hold/wait duration, checked against
+    how long it actually took them to follow up with something substantive.
+
+    This is a SOFT flag - exceeding a stated hold time is common in practice
+    (see project notes) and isn't, by itself, a failure worth auto-flagging
+    as a problem. `exceeded`/`overage_seconds` are informational.
+    """
+    agent_message_index: int
+    stated_text: str = Field(..., max_length=300)
+    stated_seconds: int
+    actual_seconds: float
+    exceeded: bool
+    overage_seconds: float = Field(
+        ..., description="actual_seconds - stated_seconds. Zero or negative means within the stated time."
+    )
+
+
+class HoldTimeCompliance(BaseModel):
+    evaluated: bool
+    holds: list[HoldCheck] = Field(default_factory=list)
+    any_exceeded: bool = False
+    note: str | None = None
+
+
+class IdleWindowCheck(BaseModel):
+    """One stretch where the passenger went quiet (no messages from them)
+    while the agent was still working the ticket. Checked against the
+    idle-passenger protocol: a first check-in at ~2 min idle, and - if the
+    passenger is still quiet - a final message closing the chat at ~3 min
+    idle (rather than the agent going silent or disappearing without
+    closing the loop).
+    """
+    idle_start_index: int = Field(..., description="Index of the last customer message before this idle window")
+    idle_duration_seconds: float
+    customer_responded: bool = Field(..., description="Whether the customer sent another message before the transcript ends")
+    first_checkin_seconds: float | None = None
+    first_checkin_on_time: bool | None = None
+    final_notice_sent: bool = False
+    final_notice_seconds: float | None = None
+    final_notice_on_time: bool | None = None
+    outcome: str = Field(
+        ..., description="customer_responded | closed_after_final_notice | no_final_notice_given"
+    )
+    violations: list[str] = Field(default_factory=list)
+
+
+class IdleProtocolCompliance(BaseModel):
+    evaluated: bool
+    windows: list[IdleWindowCheck] = Field(default_factory=list)
+    any_violation: bool = False
+    note: str | None = None
 
 
 class QAScores(BaseModel):
@@ -69,7 +132,9 @@ class QALLMOutput(BaseModel):
 
 
 class QAAnalysisResult(BaseModel):
-    """Public response: the LLM output plus a deterministically computed overall score."""
+    """Public response: the LLM output plus everything computed deterministically
+    in Python - the overall score, and the hold-time / idle-protocol checks
+    (see timing_checks.py; neither of these is asked of the LLM)."""
     category: IssueCategory
     secondary_issues: list[str]
     scores: QAScores
@@ -80,6 +145,8 @@ class QAAnalysisResult(BaseModel):
     strengths: list[str]
     improvements: list[str]
     summary: str
+    hold_time_compliance: HoldTimeCompliance
+    idle_protocol_compliance: IdleProtocolCompliance
 
 
 class QAAnalyzeResponse(BaseModel):

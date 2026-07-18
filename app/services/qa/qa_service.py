@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 from app.config import settings
 from app.models.qa_schemas import ChatTranscript, QAAnalysisResult, QAAnalyzeResponse, QALLMOutput
-from app.services.qa import ollama_client
+from app.services.qa import ollama_client, timing_checks
 from app.services.qa.prompts import SYSTEM_PROMPT, build_user_prompt
 
 _SCHEMA = QALLMOutput.model_json_schema()
@@ -50,6 +50,9 @@ async def analyze_transcript(transcript: ChatTranscript) -> QAAnalyzeResponse:
         strengths=llm_output.strengths,
         improvements=llm_output.improvements,
         summary=llm_output.summary,
+        # Neither of these goes through the LLM - see timing_checks.py.
+        hold_time_compliance=timing_checks.check_hold_time_compliance(transcript),
+        idle_protocol_compliance=timing_checks.check_idle_protocol_compliance(transcript),
     )
 
     return QAAnalyzeResponse(
