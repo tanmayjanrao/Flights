@@ -108,7 +108,13 @@ def test_analyze_flags_exceeded_hold_and_late_checkin_with_timestamps(monkeypatc
             {"speaker": "customer", "text": "My bag never showed up.", "elapsed_seconds": 0},
             {"speaker": "agent", "text": "let me check, could I put you on hold for about 2 minutes?", "elapsed_seconds": 5},
             {"speaker": "customer", "text": "sure", "elapsed_seconds": 10},
+            # Resumption after the hold - well past the fixed 300s policy, so
+            # this alone trips the hold-time check.
             {"speaker": "agent", "text": "thanks for waiting, here's your update", "elapsed_seconds": 500},
+            # A check-in sent well past the 2-minute checkpoint measured from
+            # the resumption above (not from the hold announcement) - trips
+            # the idle-protocol check.
+            {"speaker": "agent", "text": "just checking in - are you still there?", "elapsed_seconds": 750},
         ],
     }
 

@@ -41,7 +41,7 @@
       },
       {
         "speaker": "agent",
-        "text": "Thanks so much for your patience. I've confirmed this fare is partially refundable - you're eligible for either a refund of the base fare minus a cancellation fee, or a full-value travel credit valid for 12 months. Which would you prefer?",
+        "text": "I'm back - thanks so much for your patience. I've confirmed this fare is partially refundable - you're eligible for either a refund of the base fare minus a cancellation fee, or a full-value travel credit valid for 12 months. Which would you prefer?",
         "elapsed_seconds": 380
       },
       {
@@ -56,38 +56,33 @@
       },
       {
         "speaker": "agent",
+        "text": "I'm back - flight 6E204 has now been cancelled and a travel credit of ₹8,200 has been issued to your account, valid for 12 months - reference CR-88213. You'll get a confirmation email shortly.",
+        "elapsed_seconds": 590
+      },
+      {
+        "speaker": "agent",
         "text": "Just checking in - are you still there?",
-        "elapsed_seconds": 535
+        "elapsed_seconds": 710
       },
       {
         "speaker": "customer",
-        "text": "Yes sorry, still here!",
-        "elapsed_seconds": 545
+        "text": "Yes sorry, still here! Thank you so much.",
+        "elapsed_seconds": 720
       },
       {
         "speaker": "agent",
-        "text": "No worries at all! Flight 6E204 has now been cancelled and a travel credit of ₹8,200 has been issued to your account, valid for 12 months - reference CR-88213. You'll get a confirmation email shortly.",
-        "elapsed_seconds": 560
-      },
-      {
-        "speaker": "customer",
-        "text": "Perfect, thank you.",
-        "elapsed_seconds": 575
-      },
-      {
-        "speaker": "agent",
-        "text": "Is there anything else I can help you with today?",
-        "elapsed_seconds": 585
+        "text": "Wonderful, glad that's all sorted! Is there anything else I can help you with today?",
+        "elapsed_seconds": 730
       },
       {
         "speaker": "customer",
         "text": "No, that's everything.",
-        "elapsed_seconds": 595
+        "elapsed_seconds": 740
       },
       {
         "speaker": "agent",
-        "text": "Wonderful. Thank you so much for contacting Skyline Travels, have a great day, and we hope to fly with you again soon!",
-        "elapsed_seconds": 610
+        "text": "Perfect. Thank you so much for contacting Skyline Travels, have a great day, and we hope to fly with you again soon!",
+        "elapsed_seconds": 750
       }
     ]
   },
@@ -133,18 +128,18 @@
       },
       {
         "speaker": "agent",
-        "text": "Thanks for waiting. I found two options: 6E110 on the 5th at 6:40am, or 6E118 on the 6th at 8:15am, both with seats available. I'll need about 2 more minutes to check whether there's any fare difference on either - is that alright?",
-        "elapsed_seconds": 180
+        "text": "I'm back - I found two options: 6E110 on the 5th at 6:40am, or 6E118 on the 6th at 8:15am, both with seats available. Let me know if either works, or if you'd like me to check for anything else.",
+        "elapsed_seconds": 350
       },
       {
         "speaker": "agent",
         "text": "Just checking in - are you still there?",
-        "elapsed_seconds": 230
+        "elapsed_seconds": 470
       },
       {
         "speaker": "agent",
         "text": "I haven't heard back, so I'll go ahead and close this chat for now so I'm not holding the line unnecessarily. Once you're ready, please reach back out referencing this chat and we can pick up right where we left off with those two flight options. Have a great day, and thank you for contacting Skyline Travels!",
-        "elapsed_seconds": 300
+        "elapsed_seconds": 540
       }
     ]
   },
@@ -180,7 +175,7 @@
       },
       {
         "speaker": "agent",
-        "text": "Thanks for waiting. Adding 10kg on this fare would normally be a straightforward charge, but I'm seeing a system restriction on this specific booking that needs manual approval from our baggage services team. I've forwarded your request to them - I don't have an exact timeframe I can promise, but they typically respond within a business day or two.",
+        "text": "I'm back - thanks for waiting. Adding 10kg on this fare would normally be a straightforward charge, but I'm seeing a system restriction on this specific booking that needs manual approval from our baggage services team. I've forwarded your request to them - I don't have an exact timeframe I can promise, but they typically respond within a business day or two.",
         "elapsed_seconds": 180
       },
       {
@@ -247,38 +242,13 @@
       },
       {
         "speaker": "agent",
-        "text": "Thanks for waiting - still working through a few options here, appreciate your patience.",
-        "elapsed_seconds": 620
-      },
-      {
-        "speaker": "customer",
-        "text": "Hello? Are you still there? It's been a while.",
-        "elapsed_seconds": 635
-      },
-      {
-        "speaker": "agent",
-        "text": "Sorry for the wait - I found a better option for you: 6E402 departing 2 hours later, same day, no fare difference. I've gone ahead and rebooked you onto it.",
-        "elapsed_seconds": 655
-      },
-      {
-        "speaker": "customer",
-        "text": "That works, thank you.",
+        "text": "I'm back - sorry that took a while. I found a better option for you: 6E402 departing 2 hours later, same day, no fare difference. I've gone ahead and rebooked you onto it.",
         "elapsed_seconds": 670
       },
       {
         "speaker": "agent",
-        "text": "You're welcome! Your new confirmation is 6E402-PNQ4. Is there anything else I can help with today?",
-        "elapsed_seconds": 685
-      },
-      {
-        "speaker": "customer",
-        "text": "No, that's all.",
-        "elapsed_seconds": 695
-      },
-      {
-        "speaker": "agent",
-        "text": "Perfect, thank you for contacting Skyline Travels, have a great day!",
-        "elapsed_seconds": 705
+        "text": "Just checking in - are you still there?",
+        "elapsed_seconds": 910
       }
     ]
   }

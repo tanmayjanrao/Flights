@@ -40,10 +40,22 @@ async function loadSamples() {
 
 function renderTranscript(transcript) {
   transcriptView.innerHTML = transcript.messages
-    .map(
-      (m) => `<div class="msg msg-${m.speaker}"><span class="who">${m.speaker}</span>${escapeHtml(m.text)}</div>`
-    )
+    .map((m) => {
+      const time = m.elapsed_seconds !== null && m.elapsed_seconds !== undefined ? fmtClock(m.elapsed_seconds) : null;
+      const timeEl = time ? `<span class="msg-time">${time}</span>` : "";
+      return `<div class="msg msg-${m.speaker}"><span class="who">${m.speaker}${timeEl}</span>${escapeHtml(m.text)}</div>`;
+    })
     .join("");
+}
+
+// mm:ss timestamp for the transcript panel, from elapsed_seconds (seconds
+// since chat start) - distinct from fmtSecs below, which formats a duration
+// like "3m 20s" for the QA report's timing blocks.
+function fmtClock(s) {
+  const total = Math.max(0, Math.round(s));
+  const m = Math.floor(total / 60);
+  const sec = total % 60;
+  return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
 function escapeHtml(text) {
@@ -117,14 +129,14 @@ function renderHoldTimeCompliance(hold) {
   const rows = hold.holds
     .map((h) => {
       const pillCls = h.exceeded ? "warn" : "ok";
-      const pillText = h.exceeded ? `+${fmtSecs(h.overage_seconds)} over` : "within stated time";
+      const pillText = h.exceeded ? `+${fmtSecs(h.overage_seconds)} over policy` : "within policy";
       return `<div class="qa-timing-row">
         <span class="qa-timing-pill ${pillCls}">${pillText}</span>
-        <span>stated ${fmtSecs(h.stated_seconds)}, actual ${fmtSecs(h.actual_seconds)}</span>
+        <span>actual ${fmtSecs(h.actual_seconds)} vs ${fmtSecs(h.policy_seconds)} policy (agent stated ${fmtSecs(h.stated_seconds)})</span>
       </div>`;
     })
     .join("");
-  return `<div class="qa-timing-block"><h3>Hold-time compliance <span class="qa-soft-flag">soft flag</span></h3>${rows}</div>`;
+  return `<div class="qa-timing-block"><h3>Hold-time compliance <span class="qa-soft-flag">5 min policy</span></h3>${rows}</div>`;
 }
 
 function renderIdleProtocolCompliance(idle) {

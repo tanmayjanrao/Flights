@@ -15,9 +15,12 @@ missing anywhere, both checks report `evaluated=False` rather than
 guessing.
 
 ## Hold-time compliance
-Soft flag: does the agent's actual follow-up time exceed the duration they
-told the passenger? Exceeding a stated hold time is common in practice
-(see project handoff notes) so this is informational, not an auto-fail.
+Company policy is a FIXED 5-minute (300s) hold benchmark - this is the one
+number that matters, always, regardless of what the agent says out loud.
+Coming back sooner than 5 minutes is good (better CSAT) and never flagged.
+Taking longer than 5 minutes is the only violation condition. We do NOT
+compare actual time against whatever duration the agent happened to state
+("3 minutes", "5 minutes", etc.) - only against the fixed policy benchmark.
 
 ## Idle-protocol adherence
 Per the documented "near-perfect chat" flow, if the passenger goes quiet:
@@ -26,6 +29,15 @@ Per the documented "near-perfect chat" flow, if the passenger goes quiet:
     closes the chat (rather than going silent or just disappearing)
 These two checkpoints - 2 minutes and 3 minutes - are fixed by the product
 spec, not configurable per transcript.
+
+Importantly, if the passenger's silence was because the AGENT placed them on
+hold to do their own work, that hold time is not passenger-idle time. The
+2/3-minute clock only starts once the agent resumes with a real update and is
+now the one waiting on the passenger - a "still there?" ping is for when the
+*passenger* goes quiet, not for the agent to announce their own return from a
+hold. So when a hold precedes the quiet stretch, the check-in/final-notice
+checkpoints are measured from the agent's resumption message, not from the
+customer's last message or the hold announcement.
 """
 import re
 
@@ -36,6 +48,10 @@ from app.models.qa_schemas import (
     IdleProtocolCompliance,
     IdleWindowCheck,
 )
+
+# Fixed company hold benchmark (see module docstring) - the ONLY number that
+# matters for hold-time compliance, regardless of what the agent states.
+HOLD_POLICY_SECONDS = 300  # 5 min
 
 # Idle-protocol checkpoints (fixed by spec - see module docstring).
 IDLE_FIRST_CHECKIN_SECONDS = 120  # 2 min
@@ -64,6 +80,10 @@ def _is_checkin(text: str) -> bool:
 def _is_final_notice(text: str) -> bool:
     low = text.lower()
     return any(phrase in low for phrase in _FINAL_NOTICE_PHRASES)
+
+
+def _is_hold_announcement(text: str) -> bool:
+    return bool(_DURATION_RE.search(text))
 
 
 def check_hold_time_compliance(transcript: ChatTranscript) -> HoldTimeCompliance:
@@ -101,13 +121,17 @@ def check_hold_time_compliance(transcript: ChatTranscript) -> HoldTimeCompliance
             continue
 
         actual_seconds = resolution_elapsed - msg.elapsed_seconds
-        overage = actual_seconds - stated_seconds
+        # Compliance is against the fixed company benchmark, NOT the stated
+        # duration - see module docstring. stated_seconds is kept only for
+        # display/context.
+        overage = actual_seconds - HOLD_POLICY_SECONDS
         holds.append(
             HoldCheck(
                 agent_message_index=i,
                 stated_text=msg.text,
                 stated_seconds=stated_seconds,
                 actual_seconds=actual_seconds,
+                policy_seconds=HOLD_POLICY_SECONDS,
                 exceeded=overage > 0,
                 overage_seconds=overage,
             )
@@ -150,14 +174,49 @@ def check_idle_protocol_compliance(transcript: ChatTranscript) -> IdleProtocolCo
             i += 1
             continue
 
-        idle_start = messages[i].elapsed_seconds
         customer_responded = j < n
+
+        # Figure out where the check-in clock actually starts. If the agent
+        # was working a hold they placed the passenger on, everything up to
+        # their resumption message is hold-work time, not passenger-idle
+        # time - that part is already covered by the hold-time check above.
+        # The clock only starts once the agent hands control back with a
+        # real update (a message that isn't itself a check-in/final-notice
+        # ping) and is now the one waiting on the passenger.
+        first_ping_idx = next(
+            (k for k in agent_run if _is_checkin(messages[k].text) or _is_final_notice(messages[k].text)),
+            None,
+        )
+        pre_ping = agent_run if first_ping_idx is None else [k for k in agent_run if k < first_ping_idx]
+
+        preceded_by_hold_announcement = (
+            i > 0 and messages[i - 1].speaker == "agent" and _is_hold_announcement(messages[i - 1].text)
+        )
+        run_resumes_from_hold = bool(pre_ping) and (len(pre_ping) < len(agent_run) or preceded_by_hold_announcement)
+
+        if run_resumes_from_hold:
+            wait_start_index = pre_ping[-1]
+            wait_start = messages[wait_start_index].elapsed_seconds
+            trailing = [] if first_ping_idx is None else [k for k in agent_run if k >= first_ping_idx]
+            if not trailing:
+                # The agent resumed with an update but nothing after it
+                # (customer responded right away, or the transcript just
+                # ends there) - no check-in/final-notice timing to evaluate.
+                i = j
+                continue
+        else:
+            wait_start_index = i
+            wait_start = messages[i].elapsed_seconds
+            trailing = agent_run
+
         idle_end = messages[j].elapsed_seconds if customer_responded else messages[agent_run[-1]].elapsed_seconds
-        idle_duration = idle_end - idle_start
+        idle_duration = idle_end - wait_start
 
         # Only windows long enough to plausibly need the protocol are evaluated.
         if idle_duration >= IDLE_FIRST_CHECKIN_SECONDS - IDLE_TOLERANCE_SECONDS:
-            windows.append(_evaluate_idle_window(messages, i, idle_start, agent_run, customer_responded, idle_duration))
+            windows.append(
+                _evaluate_idle_window(messages, wait_start_index, wait_start, trailing, customer_responded, idle_duration)
+            )
 
         i = j
 
@@ -169,21 +228,21 @@ def check_idle_protocol_compliance(transcript: ChatTranscript) -> IdleProtocolCo
     )
 
 
-def _evaluate_idle_window(messages, idle_start_index, idle_start, agent_run, customer_responded, idle_duration):
+def _evaluate_idle_window(messages, wait_start_index, wait_start, trailing, customer_responded, idle_duration):
     violations: list[str] = []
 
     # Prefer an explicit "checking in" style ping; if none exists, fall back
-    # to the agent's first message in the run - some response is still a
-    # response, just not phrased as a check-in.
-    checkin_idx = next((k for k in agent_run if _is_checkin(messages[k].text)), agent_run[0])
-    first_checkin_seconds = messages[checkin_idx].elapsed_seconds - idle_start
+    # to the agent's first message in the trailing stretch - some response is
+    # still a response, just not phrased as a check-in.
+    checkin_idx = next((k for k in trailing if _is_checkin(messages[k].text)), trailing[0])
+    first_checkin_seconds = messages[checkin_idx].elapsed_seconds - wait_start
     first_checkin_on_time = abs(first_checkin_seconds - IDLE_FIRST_CHECKIN_SECONDS) <= IDLE_TOLERANCE_SECONDS
 
     if not first_checkin_on_time:
         violations.append("checkin_early" if first_checkin_seconds < IDLE_FIRST_CHECKIN_SECONDS else "checkin_late")
 
-    final_idx = next((k for k in agent_run if _is_final_notice(messages[k].text)), None)
-    final_notice_seconds = messages[final_idx].elapsed_seconds - idle_start if final_idx is not None else None
+    final_idx = next((k for k in trailing if _is_final_notice(messages[k].text)), None)
+    final_notice_seconds = messages[final_idx].elapsed_seconds - wait_start if final_idx is not None else None
     final_notice_on_time = (
         abs(final_notice_seconds - IDLE_FINAL_NOTICE_SECONDS) <= IDLE_TOLERANCE_SECONDS
         if final_notice_seconds is not None
@@ -205,7 +264,7 @@ def _evaluate_idle_window(messages, idle_start_index, idle_start, agent_run, cus
             violations.append("missing_final_notice")
 
     return IdleWindowCheck(
-        idle_start_index=idle_start_index,
+        wait_start_index=wait_start_index,
         idle_duration_seconds=idle_duration,
         customer_responded=customer_responded,
         first_checkin_seconds=first_checkin_seconds,

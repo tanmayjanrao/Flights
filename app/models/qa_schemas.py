@@ -56,20 +56,25 @@ class ChatTranscript(BaseModel):
 
 
 class HoldCheck(BaseModel):
-    """One instance of the agent stating a hold/wait duration, checked against
-    how long it actually took them to follow up with something substantive.
+    """One instance of the agent placing the passenger on hold, checked
+    against how long it actually took them to follow up with something
+    substantive.
 
-    This is a SOFT flag - exceeding a stated hold time is common in practice
-    (see project notes) and isn't, by itself, a failure worth auto-flagging
-    as a problem. `exceeded`/`overage_seconds` are informational.
+    Compliance is judged against `policy_seconds` - a FIXED company benchmark
+    (5 minutes / 300s), not against whatever number the agent happened to say
+    out loud. Coming back sooner than that is always fine (better CSAT); the
+    only violation condition is taking longer than the fixed benchmark.
+    `stated_seconds` is kept for context/display only - it is not used to
+    decide `exceeded`.
     """
     agent_message_index: int
     stated_text: str = Field(..., max_length=300)
-    stated_seconds: int
+    stated_seconds: int = Field(..., description="What the agent told the passenger, in seconds - context only.")
     actual_seconds: float
-    exceeded: bool
+    policy_seconds: int = Field(..., description="Fixed company hold benchmark (300s / 5 min), regardless of what the agent stated.")
+    exceeded: bool = Field(..., description="actual_seconds > policy_seconds")
     overage_seconds: float = Field(
-        ..., description="actual_seconds - stated_seconds. Zero or negative means within the stated time."
+        ..., description="actual_seconds - policy_seconds. Zero or negative means within the fixed policy benchmark."
     )
 
 
@@ -81,14 +86,28 @@ class HoldTimeCompliance(BaseModel):
 
 
 class IdleWindowCheck(BaseModel):
-    """One stretch where the passenger went quiet (no messages from them)
-    while the agent was still working the ticket. Checked against the
-    idle-passenger protocol: a first check-in at ~2 min idle, and - if the
-    passenger is still quiet - a final message closing the chat at ~3 min
-    idle (rather than the agent going silent or disappearing without
-    closing the loop).
+    """One stretch where the passenger went quiet (no messages from them).
+    Checked against the idle-passenger protocol: a first check-in at ~2 min
+    idle, and - if the passenger is still quiet - a final message closing the
+    chat at ~3 min idle (rather than the agent going silent or disappearing
+    without closing the loop).
+
+    Important distinction: if the agent had placed the passenger on hold to
+    do their own work (e.g. "give me 5 minutes to check that"), that hold
+    time is NOT passenger-idle time - the check-in clock only starts once the
+    agent resumes with a real update and is now the one waiting on the
+    passenger. A "still there?" ping is for when the *passenger* has gone
+    quiet, not for the agent to announce their own return from a hold.
     """
-    idle_start_index: int = Field(..., description="Index of the last customer message before this idle window")
+    wait_start_index: int = Field(
+        ...,
+        description=(
+            "Index of the message that starts the check-in clock: the agent's "
+            "resumption/update message if this window followed a hold the agent "
+            "was working (their own hold-work time doesn't count as passenger-idle "
+            "time), otherwise the last customer message before the agent went quiet."
+        ),
+    )
     idle_duration_seconds: float
     customer_responded: bool = Field(..., description="Whether the customer sent another message before the transcript ends")
     first_checkin_seconds: float | None = None
