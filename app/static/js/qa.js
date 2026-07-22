@@ -130,9 +130,12 @@ function renderHoldTimeCompliance(hold) {
     .map((h) => {
       const pillCls = h.exceeded ? "warn" : "ok";
       const pillText = h.exceeded ? `+${fmtSecs(h.overage_seconds)} over policy` : "within policy";
+      const statedCls = h.stated_duration_compliant ? "ok" : "warn";
+      const statedText = h.stated_duration_compliant ? "stated 5 min" : `stated ${fmtSecs(h.stated_seconds)} (must be 5 min)`;
       return `<div class="qa-timing-row">
+        <span class="qa-timing-pill ${statedCls}">${statedText}</span>
         <span class="qa-timing-pill ${pillCls}">${pillText}</span>
-        <span>actual ${fmtSecs(h.actual_seconds)} vs ${fmtSecs(h.policy_seconds)} policy (agent stated ${fmtSecs(h.stated_seconds)})</span>
+        <span>actual ${fmtSecs(h.actual_seconds)} vs ${fmtSecs(h.policy_seconds)} policy</span>
       </div>`;
     })
     .join("");

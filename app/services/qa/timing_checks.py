@@ -15,12 +15,29 @@ missing anywhere, both checks report `evaluated=False` rather than
 guessing.
 
 ## Hold-time compliance
-Company policy is a FIXED 5-minute (300s) hold benchmark - this is the one
-number that matters, always, regardless of what the agent says out loud.
-Coming back sooner than 5 minutes is good (better CSAT) and never flagged.
-Taking longer than 5 minutes is the only violation condition. We do NOT
-compare actual time against whatever duration the agent happened to state
-("3 minutes", "5 minutes", etc.) - only against the fixed policy benchmark.
+The Hold Time Policy has two independent rules, both checked here:
+
+Rule 1 - Hold Duration (what the agent SAYS). Per policy, whenever an agent
+places the passenger on hold, the *stated* duration must always be exactly
+5 minutes. "Please allow me 1 minute" / "2 minutes" / "3 minutes" /
+"4 minutes" / "10 minutes" are all violations of this rule - only stating
+"5 minutes" is compliant. This is checked purely against what the agent
+said, independent of how the hold actually plays out.
+
+Rule 2 - Hold Resumption (what the agent DOES). The agent must actually
+return within 5 minutes (300s) of announcing the hold - this is the one
+fixed benchmark that matters here, always, regardless of what the agent
+said out loud. Coming back sooner than 5 minutes is good (better CSAT) and
+never flagged. Taking longer than 5 minutes is the only violation
+condition for this rule. We do NOT compare actual time against whatever
+duration the agent happened to state ("3 minutes", "5 minutes", etc.) -
+only against the fixed policy benchmark.
+
+These two rules are evaluated independently per hold - a hold can violate
+Rule 1 only, Rule 2 only, both, or neither. Multiple holds in one
+transcript are each judged independently with their own fresh 5-minute
+timer (per policy Rule 3 - "each hold starts a completely new 5-minute
+timer").
 
 ## Idle-protocol adherence
 Per the documented "near-perfect chat" flow, if the passenger goes quiet:
@@ -49,9 +66,14 @@ from app.models.qa_schemas import (
     IdleWindowCheck,
 )
 
-# Fixed company hold benchmark (see module docstring) - the ONLY number that
-# matters for hold-time compliance, regardless of what the agent states.
+# Fixed company hold benchmark for Rule 2 (actual resumption time) - the
+# ONLY number that matters for that rule, regardless of what the agent states.
 HOLD_POLICY_SECONDS = 300  # 5 min
+
+# Rule 1: the stated hold duration itself must always be exactly this - not
+# "anything <= 5 minutes", not "close to 5 minutes". Only this exact value
+# is compliant; every other stated duration is a violation of Rule 1.
+REQUIRED_STATED_HOLD_SECONDS = 300  # 5 min
 
 # Idle-protocol checkpoints (fixed by spec - see module docstring).
 IDLE_FIRST_CHECKIN_SECONDS = 120  # 2 min
@@ -105,6 +127,11 @@ def check_hold_time_compliance(transcript: ChatTranscript) -> HoldTimeCompliance
 
         stated_seconds = int(match.group(1)) * 60
 
+        # Rule 1: the stated duration must be exactly 5 minutes, full stop.
+        # This is independent of everything below - it's checked purely
+        # against what the agent said, not against what happens afterward.
+        stated_duration_compliant = stated_seconds == REQUIRED_STATED_HOLD_SECONDS
+
         # Find the next agent message that actually delivers something,
         # skipping pure check-in pings (which don't resolve the hold).
         resolution_elapsed = None
@@ -117,23 +144,34 @@ def check_hold_time_compliance(transcript: ChatTranscript) -> HoldTimeCompliance
 
         if resolution_elapsed is None:
             # Hold was announced but never followed up on in this transcript -
-            # nothing to measure it against.
+            # nothing to measure Rule 2 (resumption time) against, so (as
+            # before) we don't report this as a hold at all.
             continue
 
         actual_seconds = resolution_elapsed - msg.elapsed_seconds
-        # Compliance is against the fixed company benchmark, NOT the stated
-        # duration - see module docstring. stated_seconds is kept only for
-        # display/context.
+        # Rule 2: compliance is against the fixed company benchmark, NOT the
+        # stated duration - see module docstring. This is evaluated
+        # independently of Rule 1 above; either can fail on its own.
         overage = actual_seconds - HOLD_POLICY_SECONDS
+        resumption_exceeded = overage > 0
+
+        violations: list[str] = []
+        if not stated_duration_compliant:
+            violations.append("stated_duration_not_5_minutes")
+        if resumption_exceeded:
+            violations.append("resumption_exceeded_policy")
+
         holds.append(
             HoldCheck(
                 agent_message_index=i,
                 stated_text=msg.text,
                 stated_seconds=stated_seconds,
+                stated_duration_compliant=stated_duration_compliant,
                 actual_seconds=actual_seconds,
                 policy_seconds=HOLD_POLICY_SECONDS,
-                exceeded=overage > 0,
+                exceeded=resumption_exceeded,
                 overage_seconds=overage,
+                violations=violations,
             )
         )
 
@@ -141,6 +179,7 @@ def check_hold_time_compliance(transcript: ChatTranscript) -> HoldTimeCompliance
         evaluated=True,
         holds=holds,
         any_exceeded=any(h.exceeded for h in holds),
+        any_violation=any(h.violations for h in holds),
         note=None if holds else "No stated hold/wait duration found in the transcript.",
     )
 

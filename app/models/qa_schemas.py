@@ -57,24 +57,38 @@ class ChatTranscript(BaseModel):
 
 class HoldCheck(BaseModel):
     """One instance of the agent placing the passenger on hold, checked
-    against how long it actually took them to follow up with something
-    substantive.
+    against the Hold Time Policy's two independent rules:
 
-    Compliance is judged against `policy_seconds` - a FIXED company benchmark
-    (5 minutes / 300s), not against whatever number the agent happened to say
-    out loud. Coming back sooner than that is always fine (better CSAT); the
-    only violation condition is taking longer than the fixed benchmark.
-    `stated_seconds` is kept for context/display only - it is not used to
-    decide `exceeded`.
+    Rule 1 - Hold Duration (what the agent SAYS): the stated hold duration
+    must always be exactly 5 minutes. Stating "1 minute", "2 minutes",
+    "10 minutes", etc. is a violation of this rule regardless of how long
+    the hold actually ends up taking - see `stated_duration_compliant`.
+
+    Rule 2 - Hold Resumption (what the agent DOES): the agent must actually
+    return within 5 minutes of announcing the hold. Coming back sooner is
+    always fine; only taking longer than the fixed 5-minute benchmark is a
+    violation - see `exceeded`. This is judged against `policy_seconds` (the
+    fixed company benchmark), never against whatever duration the agent
+    happened to state - stating the wrong number does not change how the
+    actual-time rule is judged, and vice versa. The two rules are evaluated
+    independently and either can fail on its own.
     """
     agent_message_index: int
     stated_text: str = Field(..., max_length=300)
-    stated_seconds: int = Field(..., description="What the agent told the passenger, in seconds - context only.")
+    stated_seconds: int = Field(..., description="What the agent told the passenger, in seconds.")
+    stated_duration_compliant: bool = Field(
+        ..., description="Rule 1: True iff the agent stated exactly 5 minutes (300s). Any other stated duration is a violation."
+    )
     actual_seconds: float
     policy_seconds: int = Field(..., description="Fixed company hold benchmark (300s / 5 min), regardless of what the agent stated.")
-    exceeded: bool = Field(..., description="actual_seconds > policy_seconds")
+    exceeded: bool = Field(..., description="Rule 2: actual_seconds > policy_seconds")
     overage_seconds: float = Field(
         ..., description="actual_seconds - policy_seconds. Zero or negative means within the fixed policy benchmark."
+    )
+    violations: list[str] = Field(
+        default_factory=list,
+        description="Which of the two independent Hold Policy rules this hold broke: "
+        "'stated_duration_not_5_minutes' (Rule 1) and/or 'resumption_exceeded_policy' (Rule 2). Empty means fully compliant.",
     )
 
 
@@ -82,6 +96,10 @@ class HoldTimeCompliance(BaseModel):
     evaluated: bool
     holds: list[HoldCheck] = Field(default_factory=list)
     any_exceeded: bool = False
+    any_violation: bool = Field(
+        default=False,
+        description="True if any hold broke either Hold Policy rule (stated-duration or resumption-time). Superset of any_exceeded.",
+    )
     note: str | None = None
 
 

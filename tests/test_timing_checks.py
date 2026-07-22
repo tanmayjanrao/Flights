@@ -26,10 +26,11 @@ def test_hold_time_skipped_without_timestamps():
     assert result.holds == []
 
 
-def test_hold_time_within_policy_not_flagged():
-    # Stated duration is deliberately much shorter than the actual time -
-    # compliance is judged against the fixed 300s policy, not what the agent
-    # said, so this should still pass since 280s < 300s.
+def test_hold_time_within_policy_not_flagged_for_resumption_but_stated_duration_still_wrong():
+    # Rule 2 (resumption time, 280s < 300s) passes. But Rule 1 (stated
+    # duration) requires the agent to have said exactly 5 minutes - "about 1
+    # minute" is a Rule 1 violation on its own, independent of how quickly
+    # the agent actually came back.
     tr = _transcript([
         _m("agent", "could I place you on hold, about 1 minute?", 0),
         _m("customer", "sure", 5),
@@ -39,14 +40,18 @@ def test_hold_time_within_policy_not_flagged():
     assert result.evaluated is True
     assert len(result.holds) == 1
     assert result.holds[0].policy_seconds == 300
-    assert result.holds[0].exceeded is False
+    assert result.holds[0].exceeded is False  # Rule 2: resumption on time
+    assert result.holds[0].stated_duration_compliant is False  # Rule 1: didn't say 5 minutes
+    assert result.holds[0].violations == ["stated_duration_not_5_minutes"]
     assert result.any_exceeded is False
+    assert result.any_violation is True
 
 
 def test_hold_time_exceeded_fixed_policy_is_soft_flagged():
-    # Stated duration is deliberately much longer than the fixed policy -
-    # compliance still goes against the fixed 300s benchmark, not the 10
-    # minutes the agent stated, so this should still be flagged.
+    # Stated duration is deliberately long ("10 minutes") - this fails BOTH
+    # rules independently: Rule 1 because it isn't 5 minutes, and Rule 2
+    # because compliance still goes against the fixed 300s benchmark, not
+    # the 10 minutes the agent stated, and 600s > 300s.
     tr = _transcript([
         _m("agent", "brief hold, about 10 minutes", 0),
         _m("customer", "ok", 5),
@@ -54,9 +59,12 @@ def test_hold_time_exceeded_fixed_policy_is_soft_flagged():
     ])
     result = timing_checks.check_hold_time_compliance(tr)
     assert result.any_exceeded is True
-    assert result.holds[0].stated_seconds == 600  # kept for context only, not used for exceeded
+    assert result.any_violation is True
+    assert result.holds[0].stated_seconds == 600  # not used to decide `exceeded`, only Rule 1
+    assert result.holds[0].stated_duration_compliant is False
     assert result.holds[0].policy_seconds == 300
     assert result.holds[0].overage_seconds == 300
+    assert set(result.holds[0].violations) == {"stated_duration_not_5_minutes", "resumption_exceeded_policy"}
 
 
 def test_hold_time_check_in_does_not_count_as_resolution():
@@ -68,10 +76,71 @@ def test_hold_time_check_in_does_not_count_as_resolution():
     result = timing_checks.check_hold_time_compliance(tr)
     assert len(result.holds) == 1
     # Resolution should be the 3rd message (150s), not the check-in at 90s -
-    # and since 150s is within the fixed 300s policy benchmark, this is not
-    # flagged (even though it's past the stated 120s).
+    # and since 150s is within the fixed 300s policy benchmark, Rule 2 is not
+    # flagged (even though it's past the stated 120s). Rule 1 is still
+    # flagged since "2 minutes" isn't the required 5 minutes.
     assert result.holds[0].actual_seconds == 150
     assert result.holds[0].exceeded is False
+    assert result.holds[0].stated_duration_compliant is False
+    assert result.holds[0].violations == ["stated_duration_not_5_minutes"]
+
+
+# ------------------------------------------------- hold time - Rule 1 (stated duration)
+
+
+def test_hold_time_stated_exactly_5_minutes_is_compliant():
+    tr = _transcript([
+        _m("agent", "Please allow me 5 minutes.", 0),
+        _m("customer", "ok", 5),
+        _m("agent", "thanks for waiting, here's your update", 200),
+    ])
+    result = timing_checks.check_hold_time_compliance(tr)
+    assert result.holds[0].stated_duration_compliant is True
+    assert result.holds[0].violations == []
+    assert result.any_violation is False
+
+
+def test_hold_time_stated_5_minutes_but_returns_late_is_rule_2_violation_only():
+    # Agent said the compliant "5 minutes" (Rule 1 passes) but actually took
+    # 6 minutes to come back (Rule 2 fails) - the two rules are independent,
+    # so only Rule 2 should be flagged here.
+    tr = _transcript([
+        _m("agent", "Kindly allow me 5 minutes while I check this.", 0),
+        _m("customer", "sure", 5),
+        _m("agent", "thanks for waiting, here's your update", 360),
+    ])
+    result = timing_checks.check_hold_time_compliance(tr)
+    hold = result.holds[0]
+    assert hold.stated_duration_compliant is True
+    assert hold.exceeded is True
+    assert hold.violations == ["resumption_exceeded_policy"]
+
+
+def test_hold_time_multiple_holds_are_independent():
+    # Rule 3: each hold gets a brand new, independently-evaluated 5-minute
+    # timer. First hold: compliant on both rules. Second hold: violates
+    # both. Neither hold's evaluation should be affected by the other.
+    tr = _transcript([
+        _m("agent", "Please allow me 5 minutes.", 0),
+        _m("customer", "ok", 5),
+        _m("agent", "thanks for waiting, here's your update", 200),
+        _m("customer", "one more thing", 210),
+        _m("agent", "sure, please allow me 2 minutes for that", 215),
+        _m("agent", "all set now, thanks for waiting", 900),
+    ])
+    result = timing_checks.check_hold_time_compliance(tr)
+    assert len(result.holds) == 2
+
+    first, second = result.holds
+    assert first.stated_duration_compliant is True
+    assert first.exceeded is False
+    assert first.violations == []
+
+    assert second.stated_duration_compliant is False
+    assert second.exceeded is True
+    assert set(second.violations) == {"stated_duration_not_5_minutes", "resumption_exceeded_policy"}
+
+    assert result.any_violation is True
 
 
 def test_hold_time_no_duration_stated():
