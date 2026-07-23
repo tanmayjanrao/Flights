@@ -102,12 +102,33 @@ function renderReport(data) {
     <div class="qa-score-bars">${bars}</div>
     ${flags}
     <p>${escapeHtml(a.summary)}</p>
+    ${renderChatFlow(a.chat_flow)}
     ${strengths}
     ${improvements}
     ${renderHoldTimeCompliance(a.hold_time_compliance)}
     ${renderIdleProtocolCompliance(a.idle_protocol_compliance)}
     <p class="qa-meta">${data.model} · thinking ${data.thinking_disabled ? "off" : "on"} · ${data.latency_ms}ms</p>
   `;
+}
+
+// The 7-stage chat flow (see prompts.py) - agent greeting through close.
+// The LLM reports followed/not-followed + a short note per stage; this just
+// renders that list, it doesn't compute anything.
+function renderChatFlow(chatFlow) {
+  if (!chatFlow || !chatFlow.length) return "";
+  const rows = chatFlow
+    .map((s) => {
+      const pillCls = s.followed ? "ok" : "warn";
+      const pillText = s.followed ? "followed" : "missed";
+      const niceStage = s.stage.replace(/_/g, " ");
+      return `<div class="qa-flow-row">
+        <span class="qa-flow-name">${escapeHtml(niceStage)}</span>
+        <span class="qa-timing-pill qa-flow-pill ${pillCls}">${pillText}</span>
+        <span class="qa-flow-note">${escapeHtml(s.note || "")}</span>
+      </div>`;
+    })
+    .join("");
+  return `<div class="qa-flow-block"><h3>Chat flow</h3>${rows}</div>`;
 }
 
 function fmtSecs(s) {

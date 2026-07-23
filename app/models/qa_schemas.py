@@ -151,6 +151,24 @@ class IdleProtocolCompliance(BaseModel):
     note: str | None = None
 
 
+class ChatFlowStage(BaseModel):
+    """One stage of the standard agent chat flow (see prompts.py for the
+    full definition of what each stage requires). The LLM reports whether
+    the agent actually followed that stage in this transcript, plus a short
+    note on what was/wasn't done - not a 1-5 score, just followed or not.
+    """
+    stage: str = Field(
+        ...,
+        description=(
+            "One of: opening_statement | acknowledgement_empathy | "
+            "probing_verification | solution_discussion_agreement | "
+            "resolution | further_assistance | closing_statement"
+        ),
+    )
+    followed: bool
+    note: str = Field(default="", max_length=200)
+
+
 class QAScores(BaseModel):
     """Each dimension is scored 1 (poor) - 5 (excellent) by the LLM."""
     empathy: int = Field(..., ge=1, le=5)
@@ -165,6 +183,11 @@ class QALLMOutput(BaseModel):
     category: IssueCategory
     secondary_issues: list[str] = Field(default_factory=list, max_length=3)
     scores: QAScores
+    chat_flow: list[ChatFlowStage] = Field(
+        default_factory=list,
+        max_length=7,
+        description="One entry per chat-flow stage, in order - see ChatFlowStage.",
+    )
     resolved: bool
     escalation_needed: bool
     flags: list[str] = Field(default_factory=list, max_length=5)
@@ -180,6 +203,7 @@ class QAAnalysisResult(BaseModel):
     category: IssueCategory
     secondary_issues: list[str]
     scores: QAScores
+    chat_flow: list[ChatFlowStage]
     overall_score: int = Field(..., ge=0, le=100)
     resolved: bool
     escalation_needed: bool

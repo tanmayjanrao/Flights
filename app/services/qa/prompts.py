@@ -28,6 +28,31 @@ know about (e.g. "compliance_risk", "missed_escalation", "tone_issue", "missed_u
 "possible_eu261_entitlement"). Give 1-3 concrete strengths and 1-3 concrete, actionable \
 improvements the agent could make - written as coaching feedback, not generic praise/criticism.
 
+Also evaluate the agent's handling against the standard chat flow below. For EACH of the 7 \
+stages, in this exact order, report whether the agent actually followed it in this transcript \
+("followed": true/false) plus a short note (<=200 chars) on what was or wasn't done. Judge only \
+what's actually in the transcript - don't assume a step happened off-screen.
+
+1. opening_statement - professional greeting, agent introduction, offer to assist, positive/\
+welcoming tone.
+2. acknowledgement_empathy - acknowledges the customer's request/concern and shows ownership. \
+Empathy is only required when the customer is facing inconvenience, frustration, disappointment, \
+loss, or distress (delays, cancellations, missed connections, baggage issues, denied boarding, \
+bereavement, payment failures, etc.) - for routine/transactional requests a plain professional \
+acknowledgement is enough and should NOT be marked as failing this stage for lacking empathy.
+3. probing_verification - verifies identity when required, retrieves the booking, asks relevant \
+probing questions, and gathers the information needed before proposing a solution.
+4. solution_discussion_agreement - clearly explains the available options and any applicable \
+policies/fees/restrictions/eligibility, recommends the best option, and confirms the customer's \
+understanding/explicit agreement before acting.
+5. resolution - executes the agreed action, confirms it's done, and gives reference numbers, \
+refund timelines, credit details, or other relevant confirmation info plus clear next steps.
+6. further_assistance - asks whether the customer needs anything else. If the customer raises a \
+new issue, the agent should address it as its own acknowledgement-through-resolution cycle rather \
+than ignoring it.
+7. closing_statement - thanks the customer and ends the interaction professionally and \
+courteously.
+
 Respond with ONLY the JSON object matching the given schema. No extra commentary, no markdown \
 fences, no explanation of your reasoning."""
 
@@ -49,6 +74,15 @@ FEW_SHOT_EXAMPLES = [
                 "communication_clarity": 5,
                 "efficiency": 5,
             },
+            "chat_flow": [
+                {"stage": "opening_statement", "followed": False, "note": "No greeting - agent opens straight with the cancellation news."},
+                {"stage": "acknowledgement_empathy", "followed": True, "note": "\"I'm sorry about that\" acknowledges the disruption."},
+                {"stage": "probing_verification", "followed": False, "note": "No booking verification or clarifying questions before rebooking."},
+                {"stage": "solution_discussion_agreement", "followed": True, "note": "Proposed a specific flight meeting the deadline; customer agreed."},
+                {"stage": "resolution", "followed": True, "note": "Rebooked and gave a new confirmation number, AA2210-CHI9."},
+                {"stage": "further_assistance", "followed": True, "note": "\"Let me know if you need anything else.\""},
+                {"stage": "closing_statement", "followed": False, "note": "No formal thank-you/close after the further-assistance offer."},
+            ],
             "resolved": True,
             "escalation_needed": False,
             "flags": [],
@@ -82,6 +116,15 @@ FEW_SHOT_EXAMPLES = [
                 "communication_clarity": 3,
                 "efficiency": 2,
             },
+            "chat_flow": [
+                {"stage": "opening_statement", "followed": False, "note": "No greeting; jumps straight to \"let me look into it.\""},
+                {"stage": "acknowledgement_empathy", "followed": False, "note": "\"I understand\" is thin; frustration was left to escalate before real empathy showed."},
+                {"stage": "probing_verification", "followed": False, "note": "No booking/identity verification shown before checking flight status."},
+                {"stage": "solution_discussion_agreement", "followed": True, "note": "Eventually explained the confirmed-seat-plus-hotel option and got explicit agreement."},
+                {"stage": "resolution", "followed": True, "note": "Confirmed LH764 with a hotel voucher sent to email."},
+                {"stage": "further_assistance", "followed": False, "note": "Never asked if anything else was needed."},
+                {"stage": "closing_statement", "followed": False, "note": "No thank-you or closing statement."},
+            ],
             "resolved": True,
             "escalation_needed": False,
             "flags": ["missed_escalation", "tone_issue"],
@@ -114,6 +157,15 @@ FEW_SHOT_EXAMPLES = [
                 "communication_clarity": 4,
                 "efficiency": 4,
             },
+            "chat_flow": [
+                {"stage": "opening_statement", "followed": False, "note": "No greeting - opens directly with an apology."},
+                {"stage": "acknowledgement_empathy", "followed": True, "note": "\"I'm very sorry\" and immediate ownership of both issues."},
+                {"stage": "probing_verification", "followed": True, "note": "Asked for and got the baggage tag number before acting."},
+                {"stage": "solution_discussion_agreement", "followed": True, "note": "Explained delivery at no cost; customer accepted."},
+                {"stage": "resolution", "followed": True, "note": "Filed report, gave reference BAG-LHR-77210, confirmed the dog's status."},
+                {"stage": "further_assistance", "followed": False, "note": "Answered the pet question but never asked if anything else was needed."},
+                {"stage": "closing_statement", "followed": False, "note": "No closing statement from the agent - conversation ends on the customer's line."},
+            ],
             "resolved": True,
             "escalation_needed": False,
             "flags": ["missed_upsell"],

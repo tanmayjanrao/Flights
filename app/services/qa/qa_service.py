@@ -139,6 +139,7 @@ async def analyze_transcript(transcript: ChatTranscript) -> QAAnalyzeResponse:
         category=llm_output.category,
         secondary_issues=llm_output.secondary_issues,
         scores=llm_output.scores,
+        chat_flow=llm_output.chat_flow,
         overall_score=_overall_score(llm_output.scores),
         resolved=llm_output.resolved,
         escalation_needed=llm_output.escalation_needed,
