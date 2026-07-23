@@ -132,6 +132,98 @@ def test_analyze_flags_exceeded_hold_and_late_checkin_with_timestamps(monkeypatc
     assert "checkin_late" in idle["windows"][0]["violations"]
 
 
+def test_analyze_caps_policy_compliance_when_stated_hold_duration_is_wrong(monkeypatch):
+    # LLM gives a perfect policy_compliance score, unaware of the Hold
+    # Duration rule - the deterministic hold-time check must override it.
+    perfect_scores_output = dict(_FAKE_LLM_OUTPUT)
+    perfect_scores_output["scores"] = {
+        "empathy": 5,
+        "resolution_accuracy": 5,
+        "policy_compliance": 5,
+        "communication_clarity": 5,
+        "efficiency": 5,
+    }
+    perfect_scores_output["flags"] = []
+
+    async def fake_chat_json(system_prompt, user_prompt, json_schema):
+        return perfect_scores_output
+
+    monkeypatch.setattr(ollama_client, "chat_json", fake_chat_json)
+
+    timed_transcript = {
+        "transcript_id": "TEST-HOLD-DURATION",
+        "agent_id": "agent_test",
+        "channel": "chat",
+        "messages": [
+            {"speaker": "customer", "text": "My bag never showed up.", "elapsed_seconds": 0},
+            # Stated duration violates Rule 1 (must be exactly 5 minutes),
+            # but the agent returns well within Rule 2's 5-minute benchmark.
+            {"speaker": "agent", "text": "Please allow me 3 minutes to check.", "elapsed_seconds": 5},
+            {"speaker": "agent", "text": "thanks for waiting, here's your update", "elapsed_seconds": 125},
+        ],
+    }
+
+    resp = client.post("/api/qa/analyze", json=timed_transcript)
+    assert resp.status_code == 200
+    analysis = resp.json()["analysis"]
+
+    hold = analysis["hold_time_compliance"]
+    assert hold["evaluated"] is True
+    assert hold["holds"][0]["stated_duration_compliant"] is False
+    assert hold["holds"][0]["exceeded"] is False  # Rule 2 independently still passes
+    assert hold["any_violation"] is True
+
+    # Rule 1 violation must pull policy_compliance (and therefore
+    # overall_score) down, not leave it at the LLM's perfect 5/5.
+    assert analysis["scores"]["policy_compliance"] <= 2
+    assert analysis["overall_score"] < 100
+
+    assert any("Hold Duration Violation" in f for f in analysis["flags"])
+    assert any("3 minutes" in f and "5 minutes" in f for f in analysis["flags"])
+
+
+def test_analyze_flags_warning_after_customer_reply_and_caps_policy_compliance(monkeypatch):
+    perfect_scores_output = dict(_FAKE_LLM_OUTPUT)
+    perfect_scores_output["scores"] = {
+        "empathy": 5,
+        "resolution_accuracy": 5,
+        "policy_compliance": 5,
+        "communication_clarity": 5,
+        "efficiency": 5,
+    }
+    perfect_scores_output["flags"] = []
+
+    async def fake_chat_json(system_prompt, user_prompt, json_schema):
+        return perfect_scores_output
+
+    monkeypatch.setattr(ollama_client, "chat_json", fake_chat_json)
+
+    timed_transcript = {
+        "transcript_id": "TEST-IDLE-RULE5",
+        "agent_id": "agent_test",
+        "channel": "chat",
+        "messages": [
+            {"speaker": "customer", "text": "still need help with my booking", "elapsed_seconds": 0},
+            {"speaker": "agent", "text": "just checking in - are you still there?", "elapsed_seconds": 120},
+            {"speaker": "customer", "text": "sorry, yes - here's my confirmation", "elapsed_seconds": 285},
+            {"speaker": "agent", "text": "as we have not received a response, we will now close this chat",
+             "elapsed_seconds": 286},
+        ],
+    }
+
+    resp = client.post("/api/qa/analyze", json=timed_transcript)
+    assert resp.status_code == 200
+    analysis = resp.json()["analysis"]
+
+    idle = analysis["idle_protocol_compliance"]
+    assert idle["any_violation"] is True
+    assert any("warning_sent_after_customer_reply" in w["violations"] for w in idle["windows"])
+
+    assert analysis["scores"]["policy_compliance"] <= 1
+    assert analysis["overall_score"] < 100
+    assert any("Idle Handling Violation" in f for f in analysis["flags"])
+
+
 def test_analyze_returns_503_when_ollama_unreachable(monkeypatch):
     async def fake_chat_json(system_prompt, user_prompt, json_schema):
         raise ollama_client.OllamaUnavailableError("connection refused")

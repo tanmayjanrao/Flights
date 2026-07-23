@@ -190,6 +190,26 @@ def test_idle_protocol_late_checkin_is_flagged():
 
 
 def test_idle_protocol_final_notice_on_time_no_response():
+    # Per policy the final warning is due at a TOTAL of 5 minutes of idle
+    # time (2 min first warning + a further 3 min of continued silence) -
+    # not 3 minutes from idle start.
+    tr = _transcript([
+        _m("customer", "go ahead", 0),
+        _m("agent", "just checking in - are you still there?", 120),
+        _m("agent", "I'll go ahead and close this chat for now - reach back out anytime!", 295),
+    ])
+    result = timing_checks.check_idle_protocol_compliance(tr)
+    window = result.windows[0]
+    assert window.customer_responded is False
+    assert window.outcome == "closed_after_final_notice"
+    assert window.violations == []
+
+
+def test_idle_protocol_final_notice_at_3_minutes_is_now_flagged_early():
+    # This is the bug fix itself: a final warning fired at a 3-minute total
+    # (the old, wrong benchmark) is really 2 minutes early against the real
+    # 5-minute-total policy, and must be flagged as such, not treated as
+    # compliant.
     tr = _transcript([
         _m("customer", "go ahead", 0),
         _m("agent", "just checking in - are you still there?", 120),
@@ -197,9 +217,42 @@ def test_idle_protocol_final_notice_on_time_no_response():
     ])
     result = timing_checks.check_idle_protocol_compliance(tr)
     window = result.windows[0]
-    assert window.customer_responded is False
-    assert window.outcome == "closed_after_final_notice"
-    assert window.violations == []
+    assert "final_notice_early" in window.violations
+
+
+# ---------------------------------------- idle protocol - Rule 5 (reply cancels idle)
+
+
+def test_idle_protocol_flags_warning_sent_after_customer_already_replied():
+    # Mirrors the policy doc's own example: first warning at 2 min, customer
+    # replies at 4:45, but the agent sends the final warning (and would then
+    # disconnect) at 4:46 anyway - a "major QA violation" per policy, and one
+    # the old length-gated implementation silently dropped and never flagged
+    # at all because the resulting window is very short.
+    tr = _transcript([
+        _m("customer", "still need help with my booking", 0),
+        _m("agent", "just checking in - are you still there?", 120),
+        _m("customer", "sorry, yes - here's my confirmation", 285),
+        _m("agent", "as we have not received a response, we will now close this chat", 286),
+    ])
+    result = timing_checks.check_idle_protocol_compliance(tr)
+    assert result.any_violation is True
+    violation_windows = [w for w in result.windows if "warning_sent_after_customer_reply" in w.violations]
+    assert len(violation_windows) == 1
+    assert violation_windows[0].outcome == "warning_sent_after_customer_reply"
+
+
+def test_idle_protocol_first_warning_sent_just_before_customer_reply_is_not_a_reply_violation():
+    # Contrast case: the first warning goes out BEFORE the customer's reply
+    # (both are part of the normal, compliant flow) - the customer replying
+    # shortly after a checkin is not itself a Rule 5 violation.
+    tr = _transcript([
+        _m("customer", "still there?", 0),
+        _m("agent", "just checking in - are you still there?", 118),
+        _m("customer", "yes, sorry", 130),
+    ])
+    result = timing_checks.check_idle_protocol_compliance(tr)
+    assert all("warning_sent_after_customer_reply" not in w.violations for w in result.windows)
 
 
 def test_idle_protocol_missing_final_notice_is_flagged():

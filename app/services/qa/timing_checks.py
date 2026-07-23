@@ -40,16 +40,29 @@ timer (per policy Rule 3 - "each hold starts a completely new 5-minute
 timer").
 
 ## Idle-protocol adherence
-Per the documented "near-perfect chat" flow, if the passenger goes quiet:
-  - ~2 min idle  -> agent sends a first check-in
-  - ~3 min idle, still no response -> agent sends a final message and
-    closes the chat (rather than going silent or just disappearing)
-These two checkpoints - 2 minutes and 3 minutes - are fixed by the product
-spec, not configurable per transcript.
+Per policy, if the passenger goes quiet after the agent sends a message that
+requires a customer response:
+  - 2 min idle  -> agent sends a first warning ("checking in")
+  - Total 5 min idle (2 min + a further 3 min of continued silence after the
+    first warning) with still no response -> agent sends a final warning and
+    closes the chat
+These two checkpoints - 2 minutes and 5 minutes (NOT 3 minutes) since idle
+started - are fixed by the business policy, not configurable per transcript.
+The "additional 3 minutes" in the policy is measured on top of the first
+2 minutes, giving a total of 5 minutes from when the customer went idle -
+it is not itself the checkpoint.
+
+Critical rule (Rule 5 - "customer reply cancels idle handling"): if the
+customer replies at ANY point before the chat is disconnected - even a few
+seconds before a scheduled warning - the idle workflow must stop immediately.
+Continuing to send a first/final warning (or disconnecting) after a reply
+has already arrived is flagged as `warning_sent_after_customer_reply`,
+regardless of how little time has passed, precisely because this violation
+shows up as an anomalously *short* window, not a long one.
 
 Importantly, if the passenger's silence was because the AGENT placed them on
 hold to do their own work, that hold time is not passenger-idle time. The
-2/3-minute clock only starts once the agent resumes with a real update and is
+2/5-minute clock only starts once the agent resumes with a real update and is
 now the one waiting on the passenger - a "still there?" ping is for when the
 *passenger* goes quiet, not for the agent to announce their own return from a
 hold. So when a hold precedes the quiet stretch, the check-in/final-notice
@@ -75,9 +88,12 @@ HOLD_POLICY_SECONDS = 300  # 5 min
 # is compliant; every other stated duration is a violation of Rule 1.
 REQUIRED_STATED_HOLD_SECONDS = 300  # 5 min
 
-# Idle-protocol checkpoints (fixed by spec - see module docstring).
+# Idle-protocol checkpoints (fixed by policy - see module docstring). Both
+# are measured from the moment the customer went idle, NOT from each other:
+# the final warning is at 5 minutes total idle time, not 3 minutes after the
+# first warning fired.
 IDLE_FIRST_CHECKIN_SECONDS = 120  # 2 min
-IDLE_FINAL_NOTICE_SECONDS = 180  # 3 min
+IDLE_FINAL_NOTICE_SECONDS = 300  # 5 min total idle time (2 min + a further 3 min)
 IDLE_TOLERANCE_SECONDS = 45  # grace window either side of each checkpoint
 
 _DURATION_RE = re.compile(r"(\d+)\s*(?:more\s+)?min(?:ute)?s?", re.IGNORECASE)
@@ -251,10 +267,33 @@ def check_idle_protocol_compliance(transcript: ChatTranscript) -> IdleProtocolCo
         idle_end = messages[j].elapsed_seconds if customer_responded else messages[agent_run[-1]].elapsed_seconds
         idle_duration = idle_end - wait_start
 
-        # Only windows long enough to plausibly need the protocol are evaluated.
-        if idle_duration >= IDLE_FIRST_CHECKIN_SECONDS - IDLE_TOLERANCE_SECONDS:
+        # Rule 5 (highest priority): a customer reply cancels idle handling
+        # immediately, no matter how little time has passed. If this window's
+        # own trigger IS a customer reply (wait_start_index == i, i.e. no hold
+        # resumption involved) and the very next agent message is a
+        # checkin/final-notice ping anyway, the agent kept running the idle
+        # workflow after the customer had already responded - a violation
+        # regardless of duration. This is exactly why we can't gate on
+        # `idle_duration` alone: this violation shows up as a very SHORT
+        # window, not a long one.
+        contains_ping = any(_is_checkin(messages[k].text) or _is_final_notice(messages[k].text) for k in trailing)
+        reply_preceded_by_active_idle = (
+            not run_resumes_from_hold
+            and i > 0
+            and messages[i - 1].speaker == "agent"
+            and (_is_checkin(messages[i - 1].text) or _is_final_notice(messages[i - 1].text))
+        )
+
+        # Only windows long enough to plausibly need the protocol are
+        # evaluated, UNLESS they contain a warning ping - those must always be
+        # checked, since an anomalously early/short one is itself the Rule 5
+        # violation, not something to discard for being "too short".
+        if contains_ping or idle_duration >= IDLE_FIRST_CHECKIN_SECONDS - IDLE_TOLERANCE_SECONDS:
             windows.append(
-                _evaluate_idle_window(messages, wait_start_index, wait_start, trailing, customer_responded, idle_duration)
+                _evaluate_idle_window(
+                    messages, wait_start_index, wait_start, trailing, customer_responded, idle_duration,
+                    reply_already_received=reply_preceded_by_active_idle,
+                )
             )
 
         i = j
@@ -267,8 +306,19 @@ def check_idle_protocol_compliance(transcript: ChatTranscript) -> IdleProtocolCo
     )
 
 
-def _evaluate_idle_window(messages, wait_start_index, wait_start, trailing, customer_responded, idle_duration):
+def _evaluate_idle_window(
+    messages, wait_start_index, wait_start, trailing, customer_responded, idle_duration,
+    reply_already_received=False,
+):
     violations: list[str] = []
+
+    # Rule 5 (highest priority, checked first): the customer had already
+    # replied before this window's warning ping was sent - the agent should
+    # have returned to normal conversation, not continued the idle workflow.
+    # This is flagged unconditionally; the specific early/late timing flags
+    # below are secondary detail, not what actually matters here.
+    if reply_already_received:
+        violations.append("warning_sent_after_customer_reply")
 
     # Prefer an explicit "checking in" style ping; if none exists, fall back
     # to the agent's first message in the trailing stretch - some response is
@@ -301,6 +351,13 @@ def _evaluate_idle_window(messages, wait_start_index, wait_start, trailing, cust
             # should have happened by now, and it didn't - the agent
             # appears to have just gone silent instead of closing the loop.
             violations.append("missing_final_notice")
+
+    if reply_already_received:
+        # This window only exists because the agent kept the idle machinery
+        # running past a reply - "customer_responded" (meaning "and then
+        # THIS window's own customer also replied again") would misdescribe
+        # what happened, so label it plainly instead.
+        outcome = "warning_sent_after_customer_reply"
 
     return IdleWindowCheck(
         wait_start_index=wait_start_index,

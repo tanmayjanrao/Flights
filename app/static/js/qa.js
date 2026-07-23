@@ -129,7 +129,7 @@ function renderHoldTimeCompliance(hold) {
   const rows = hold.holds
     .map((h) => {
       const pillCls = h.exceeded ? "warn" : "ok";
-      const pillText = h.exceeded ? `+${fmtSecs(h.overage_seconds)} over policy` : "within policy";
+      const pillText = h.exceeded ? `+${fmtSecs(h.overage_seconds)} over policy` : "returned within 5 min";
       const statedCls = h.stated_duration_compliant ? "ok" : "warn";
       const statedText = h.stated_duration_compliant ? "stated 5 min" : `stated ${fmtSecs(h.stated_seconds)} (must be 5 min)`;
       return `<div class="qa-timing-row">

@@ -251,5 +251,296 @@
         "elapsed_seconds": 910
       }
     ]
+  },
+  {
+    "transcript_id": "T-HOLD-IDLE-BOUNDARY-01",
+    "agent_id": "agent_priya",
+    "channel": "chat",
+    "messages": [
+      {
+        "speaker": "customer",
+        "text": "Hi, I need to update my seat assignment and also check on a refund for a different booking.",
+        "elapsed_seconds": 0
+      },
+      {
+        "speaker": "agent",
+        "text": "Thank you for contacting Skyline Travels, this is Priya - happy to help with both. Could you start with the booking reference for the seat change?",
+        "elapsed_seconds": 15
+      },
+      {
+        "speaker": "customer",
+        "text": "Sure, it's SK5521, flight 6E204.",
+        "elapsed_seconds": 35
+      },
+      {
+        "speaker": "agent",
+        "text": "Got it - SK5521 on 6E204. Let me check seat availability - could I place you on hold, 5 minutes?",
+        "elapsed_seconds": 50
+      },
+      {
+        "speaker": "customer",
+        "text": "Sure, take your time.",
+        "elapsed_seconds": 55
+      },
+      {
+        "speaker": "agent",
+        "text": "I'm back - good news, you're moved to 14C as requested.",
+        "elapsed_seconds": 350
+      },
+      {
+        "speaker": "customer",
+        "text": "Perfect, thank you! Now, about that refund - it's for booking SK5480.",
+        "elapsed_seconds": 360
+      },
+      {
+        "speaker": "agent",
+        "text": "Got SK5480. Let me pull up the refund status - could I place you on hold again, just 2 minutes?",
+        "elapsed_seconds": 375
+      },
+      {
+        "speaker": "customer",
+        "text": "Ok.",
+        "elapsed_seconds": 380
+      },
+      {
+        "speaker": "agent",
+        "text": "I'm back - your refund of ₹3,500 has been processed, reference RF-5541. Is there anything else I can help you with today?",
+        "elapsed_seconds": 435
+      },
+      {
+        "speaker": "agent",
+        "text": "Just checking in - are you still there?",
+        "elapsed_seconds": 555
+      },
+      {
+        "speaker": "agent",
+        "text": "As we haven't received a response, we'll go ahead and close this chat for now - please reach back out anytime referencing this chat, and thank you for contacting Skyline Travels!",
+        "elapsed_seconds": 735
+      }
+    ]
+  },
+  {
+    "transcript_id": "T-IDLE-RULE5-EDGE-01",
+    "agent_id": "agent_marcus",
+    "channel": "chat",
+    "messages": [
+      {
+        "speaker": "customer",
+        "text": "I need help figuring out compensation for my delayed flight, it's already 4 hours late.",
+        "elapsed_seconds": 0
+      },
+      {
+        "speaker": "agent",
+        "text": "Thank you for contacting Skyline Travels, this is Marcus - so sorry to hear that. Could you give me your booking reference and flight number?",
+        "elapsed_seconds": 15
+      },
+      {
+        "speaker": "customer",
+        "text": "Ref SK9911, flight 6E770 Delhi to London.",
+        "elapsed_seconds": 40
+      },
+      {
+        "speaker": "agent",
+        "text": "Thanks, got SK9911 on 6E770. Since this is over 3 hours on an EU-bound route, you may be eligible for compensation under EU261 - let me verify your fare and delay records, could you allow me 5 minutes?",
+        "elapsed_seconds": 55
+      },
+      {
+        "speaker": "customer",
+        "text": "Yes, of course.",
+        "elapsed_seconds": 60
+      },
+      {
+        "speaker": "agent",
+        "text": "I'm back - confirmed, you're eligible for €300 compensation given the 4hr+ delay on this route.",
+        "elapsed_seconds": 300
+      },
+      {
+        "speaker": "customer",
+        "text": "That's great, how do I claim it?",
+        "elapsed_seconds": 310
+      },
+      {
+        "speaker": "agent",
+        "text": "I've already filed the claim for you under reference EU-7742 - you'll receive the payment within 7 business days. Is there anything else I can help with?",
+        "elapsed_seconds": 325
+      },
+      {
+        "speaker": "agent",
+        "text": "Just checking in - are you still there?",
+        "elapsed_seconds": 445
+      },
+      {
+        "speaker": "customer",
+        "text": "Sorry! Yes, still here - thank you so much, that covers everything I needed for now.",
+        "elapsed_seconds": 605
+      },
+      {
+        "speaker": "agent",
+        "text": "As we have not received a response, we will now close this chat. Thank you for contacting us.",
+        "elapsed_seconds": 620
+      },
+      {
+        "speaker": "agent",
+        "text": "My apologies for the confusion there - let's continue. Is there anything else I can help you with today?",
+        "elapsed_seconds": 630
+      },
+      {
+        "speaker": "customer",
+        "text": "Actually, can you also check my baggage allowance for the return flight?",
+        "elapsed_seconds": 635
+      },
+      {
+        "speaker": "agent",
+        "text": "Sure, let me check - could you give me the return flight number?",
+        "elapsed_seconds": 650
+      },
+      {
+        "speaker": "agent",
+        "text": "Just checking in - are you still there?",
+        "elapsed_seconds": 770
+      },
+      {
+        "speaker": "customer",
+        "text": "Yes sorry, it's 6E771.",
+        "elapsed_seconds": 840
+      },
+      {
+        "speaker": "agent",
+        "text": "Thanks, checking now - your return flight already includes 20kg allowance in the fare, no extra charge needed.",
+        "elapsed_seconds": 855
+      },
+      {
+        "speaker": "customer",
+        "text": "Perfect, that's all, thanks!",
+        "elapsed_seconds": 865
+      },
+      {
+        "speaker": "agent",
+        "text": "Wonderful! Thank you for contacting Skyline Travels, have a great day!",
+        "elapsed_seconds": 875
+      }
+    ]
+  },
+  {
+    "transcript_id": "T-STRESS-001",
+    "agent_id": "agent_sophia",
+    "channel": "chat",
+    "messages": [
+      {
+        "speaker": "customer",
+        "text": "Hi. I actually have a few things today. My flight got delayed, I think I need to change my return flight, and I also wanted to ask something unrelated.",
+        "elapsed_seconds": 0
+      },
+      {
+        "speaker": "agent",
+        "text": "Thank you for contacting Skyline Travels. My name is Sophia. I'm sorry to hear your trip hasn't gone as planned. I'd be happy to help with everything one step at a time. Could I have your booking reference please?",
+        "elapsed_seconds": 18
+      },
+      {
+        "speaker": "customer",
+        "text": "SK8829.",
+        "elapsed_seconds": 34
+      },
+      {
+        "speaker": "agent",
+        "text": "Thank you. Let me review your reservation and delay information. May I place you on hold for about 5 minutes?",
+        "elapsed_seconds": 46
+      },
+      {
+        "speaker": "customer",
+        "text": "Sure.",
+        "elapsed_seconds": 50
+      },
+      {
+        "speaker": "agent",
+        "text": "I'm back. Thanks for waiting. I can see your outbound flight was delayed by nearly four hours. Because of that you're eligible to change your return flight without a change fee.",
+        "elapsed_seconds": 340
+      },
+      {
+        "speaker": "customer",
+        "text": "Nice! Can I move it from Sunday to Monday morning?",
+        "elapsed_seconds": 352
+      },
+      {
+        "speaker": "agent",
+        "text": "Absolutely. Let me check seat availability. This should only take about 3 minutes.",
+        "elapsed_seconds": 365
+      },
+      {
+        "speaker": "customer",
+        "text": "Okay.",
+        "elapsed_seconds": 370
+      },
+      {
+        "speaker": "agent",
+        "text": "I'm back. Good news—I found seats on the Monday 8:15 AM flight and I've reserved one for you.",
+        "elapsed_seconds": 560
+      },
+      {
+        "speaker": "customer",
+        "text": "Perfect. Also... random question... what's your favorite place to travel?",
+        "elapsed_seconds": 575
+      },
+      {
+        "speaker": "agent",
+        "text": "That's a fun question! I don't travel myself, but many travelers enjoy destinations like Japan, Switzerland and New Zealand. Hopefully your next trip goes much more smoothly than this one.",
+        "elapsed_seconds": 590
+      },
+      {
+        "speaker": "customer",
+        "text": "Haha fair enough. One more thing... do I get lounge access because of the delay?",
+        "elapsed_seconds": 610
+      },
+      {
+        "speaker": "agent",
+        "text": "Let me verify the disruption benefits attached to your booking. Could you allow me another 5 minutes?",
+        "elapsed_seconds": 625
+      },
+      {
+        "speaker": "customer",
+        "text": "Yep.",
+        "elapsed_seconds": 630
+      },
+      {
+        "speaker": "agent",
+        "text": "I'm back. Your fare doesn't automatically include lounge access, but the airline has issued meal vouchers because of the delay.",
+        "elapsed_seconds": 920
+      },
+      {
+        "speaker": "agent",
+        "text": "Just checking in — are you still there?",
+        "elapsed_seconds": 1040
+      },
+      {
+        "speaker": "customer",
+        "text": "Sorry yes, my internet died.",
+        "elapsed_seconds": 1185
+      },
+      {
+        "speaker": "agent",
+        "text": "No worries at all. Welcome back.",
+        "elapsed_seconds": 1195
+      },
+      {
+        "speaker": "customer",
+        "text": "Actually I'm not happy with the airline. Can you transfer me to a supervisor?",
+        "elapsed_seconds": 1210
+      },
+      {
+        "speaker": "agent",
+        "text": "Certainly. I can arrange an escalation after summarizing everything we've completed today. Your return flight has been changed, your delay benefits were confirmed, and your meal vouchers are available. I'll now create an escalation request for a supervisor to review.",
+        "elapsed_seconds": 1240
+      },
+      {
+        "speaker": "customer",
+        "text": "Sounds good. That's everything.",
+        "elapsed_seconds": 1260
+      },
+      {
+        "speaker": "agent",
+        "text": "Perfect. Your supervisor request has been logged under reference SUP-99184. Thank you for contacting Skyline Travels today. Despite the disruption, I hope the rest of your journey goes smoothly. Have a wonderful day!",
+        "elapsed_seconds": 1285
+      }
+    ]
   }
 ]

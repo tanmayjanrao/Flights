@@ -134,7 +134,12 @@ class IdleWindowCheck(BaseModel):
     final_notice_seconds: float | None = None
     final_notice_on_time: bool | None = None
     outcome: str = Field(
-        ..., description="customer_responded | closed_after_final_notice | no_final_notice_given"
+        ...,
+        description=(
+            "customer_responded | closed_after_final_notice | no_final_notice_given | "
+            "warning_sent_after_customer_reply (Rule 5 critical violation: the agent sent a "
+            "check-in/final warning, or disconnected, after the customer had already replied)"
+        ),
     )
     violations: list[str] = Field(default_factory=list)
 
