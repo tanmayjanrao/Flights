@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     qa_model: str = "qwen3:4b"
     # CPU-bound generation: keep this generous - retrying a slow call just doubles the wait.
-    qa_timeout_seconds: int = 180
+    qa_timeout_seconds: int = 300
     # Structured JSON output only, no chain-of-thought in the answer -> doesn't need many tokens.
     qa_num_predict: int = 700
     # Few-shot prompt + one transcript comfortably fits well under 4k tokens.

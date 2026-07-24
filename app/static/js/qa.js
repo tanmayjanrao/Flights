@@ -1,10 +1,21 @@
 const sampleSelect = document.getElementById("sampleSelect");
 const analyzeBtn = document.getElementById("analyzeBtn");
+const cancelBtn = document.getElementById("cancelBtn");
 const transcriptView = document.getElementById("transcriptView");
 const reportView = document.getElementById("reportView");
 const ollamaBadge = document.getElementById("ollamaBadge");
 
 let samples = [];
+
+// Cache of completed analyses, keyed by transcript_id, so re-picking a
+// sample already analyzed this session doesn't re-run the multi-minute
+// CPU inference. Cleared on page reload (in-memory only).
+const analysisCache = new Map();
+
+// Lets the Cancel button actually abort the in-flight fetch, and lets us
+// tell an aborted request apart from a real failure.
+let activeController = null;
+let elapsedTimerId = null;
 
 function scoreClass(pct) {
   if (pct >= 75) return "good";
@@ -64,8 +75,11 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-function renderReport(data) {
+function renderReport(data, fromCache) {
   const a = data.analysis;
+  const cachedNote = fromCache
+    ? `<p class="qa-cached-note">Showing a cached result from earlier this session — click Analyze to re-run.</p>`
+    : "";
   const pct = a.overall_score;
   const cls = scoreClass(pct);
 
@@ -95,6 +109,7 @@ function renderReport(data) {
     : "";
 
   reportView.innerHTML = `
+    ${cachedNote}
     <div class="qa-score-hero">
       <span class="num ${cls}">${pct}</span>
       <span class="cat">${a.category.replace(/_/g, " ")} · ${a.resolved ? "resolved" : "unresolved"}${a.escalation_needed ? " · needs escalation" : ""}</span>
@@ -129,6 +144,22 @@ function renderChatFlow(chatFlow) {
     })
     .join("");
   return `<div class="qa-flow-block"><h3>Chat flow</h3>${rows}</div>`;
+}
+
+function startElapsedTimer() {
+  const startedAt = Date.now();
+  analyzeBtn.textContent = "Analyzing… 0s elapsed";
+  elapsedTimerId = setInterval(() => {
+    const secs = Math.floor((Date.now() - startedAt) / 1000);
+    analyzeBtn.textContent = `Analyzing… ${secs}s elapsed`;
+  }, 1000);
+}
+
+function stopElapsedTimer() {
+  if (elapsedTimerId !== null) {
+    clearInterval(elapsedTimerId);
+    elapsedTimerId = null;
+  }
 }
 
 function fmtSecs(s) {
@@ -193,8 +224,11 @@ analyzeBtn.addEventListener("click", async () => {
   if (!transcript) return;
 
   renderTranscript(transcript);
+
+  activeController = new AbortController();
   analyzeBtn.disabled = true;
-  analyzeBtn.textContent = "Analyzing… (CPU inference, may take a bit)";
+  cancelBtn.hidden = false;
+  startElapsedTimer();
   reportView.innerHTML = `<p class="empty-state">Running qwen3:4b locally, please wait…</p>`;
 
   try {
@@ -202,22 +236,41 @@ analyzeBtn.addEventListener("click", async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(transcript),
+      signal: activeController.signal,
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Analysis failed");
-    renderReport(data);
+    analysisCache.set(transcript.transcript_id, data);
+    renderReport(data, false);
   } catch (err) {
-    reportView.innerHTML = `<p class="error-state">${escapeHtml(err.message)}</p>`;
+    if (err.name === "AbortError") {
+      reportView.innerHTML = `<p class="empty-state">Analysis cancelled.</p>`;
+    } else {
+      reportView.innerHTML = `<p class="error-state">${escapeHtml(err.message)}</p>`;
+    }
   } finally {
+    stopElapsedTimer();
+    activeController = null;
     analyzeBtn.disabled = false;
     analyzeBtn.textContent = "Analyze chat";
+    cancelBtn.hidden = true;
   }
+});
+
+cancelBtn.addEventListener("click", () => {
+  if (activeController) activeController.abort();
 });
 
 sampleSelect.addEventListener("change", () => {
   const idx = Number(sampleSelect.value);
-  if (samples[idx]) {
-    renderTranscript(samples[idx]);
+  const transcript = samples[idx];
+  if (!transcript) return;
+
+  renderTranscript(transcript);
+  const cached = analysisCache.get(transcript.transcript_id);
+  if (cached) {
+    renderReport(cached, true);
+  } else {
     reportView.innerHTML = `<p class="empty-state">No analysis yet.</p>`;
   }
 });

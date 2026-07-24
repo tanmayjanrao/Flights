@@ -50,6 +50,33 @@
   flex-basis: 100%;
 }
 
+.btn-cancel {
+  background: transparent;
+  color: var(--red);
+  border: 1px solid var(--red);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.btn-cancel:hover { background: rgba(255,92,92,0.1); }
+
+.qa-elapsed {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.qa-cached-note {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  margin: 0 0 0.8rem;
+  border-bottom: 1px dashed var(--divider);
+  padding-bottom: 0.6rem;
+}
+
 .qa-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
